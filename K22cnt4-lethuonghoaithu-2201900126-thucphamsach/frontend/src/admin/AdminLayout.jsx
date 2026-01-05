@@ -21,11 +21,11 @@ function AdminLayout() {
             <li><Link to="/admin" className="nav-link text-white">Tổng quan</Link></li>
             <li><Link to="/admin/products" className="nav-link text-white">Sản phẩm</Link></li>
             <li><Link to="/admin/orders" className="nav-link text-white">Đơn hàng</Link></li>
-            <li><Link to="/admin/customers" className="nav-link text-white">Khách hàng</Link></li>
-            <li className="nav-item"><Link to="/admin/users" className="nav-link text-white">Người dùng</Link></li>
+            <li><Link to="/admin/customers" className="nav-link text-white">Khách hàng</Link></li>           
             <li><Link to="/admin/suppliers" className="nav-link text-white">Nhà cung cấp</Link></li>
             <li><Link to="/admin/promotions" className="nav-link text-white">Khuyến mãi</Link></li>
             <li><Link to="/admin/contacts" className="nav-link text-white">Liên hệ</Link></li>
+            <li className="nav-item"><Link to="/admin/users" className="nav-link text-white">Người dùng</Link></li>
           </ul>
         </nav>
 

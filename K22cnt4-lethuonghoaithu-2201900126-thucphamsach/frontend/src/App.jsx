@@ -20,42 +20,38 @@ import AdminUsers from "./admin/Users";
 
 import AdminRoute from "./admin/AdminRoute";
 import { AuthProvider } from "./context/AuthContext";
+import { CartProvider } from "./context/CartContext"; // ✅ thêm CartProvider
 
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          {/* USER */}
-          <Route path="/" element={<Home />} />
-          <Route path="/products" element={<Products />} />
-          <Route path="/product/:id" element={<ProductDetail />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/tin-tuc" element={<TinTuc />} />
+      <CartProvider> {/* ✅ bọc CartProvider quanh toàn bộ Router */}
+        <Router>
+          <Routes>
+            {/* USER */}
+            <Route path="/" element={<Home />} />
+            <Route path="/products" element={<Products />} />
+            <Route path="/product/:id" element={<ProductDetail />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/tin-tuc" element={<TinTuc />} />
 
-          {/* ADMIN */}
-          <Route
-            path="/admin"
-            element={
-              <AdminRoute>
-                <AdminLayout />
-              </AdminRoute>
-            }
-          >
-            <Route index element={<AdminDashboard />} />
-            <Route path="products" element={<AdminProducts />} />
-            <Route path="orders" element={<AdminOrders />} />
-            <Route path="customers" element={<AdminCustomers />} />
-            <Route path="suppliers" element={<AdminSuppliers />} />
-            <Route path="promotions" element={<AdminPromotions />} />
-            <Route path="contacts" element={<AdminContacts />} />
-            <Route path="users" element={<AdminUsers />} />
-          </Route>
-        </Routes>
-      </Router>
+            {/* ADMIN */}
+            <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="products" element={<AdminProducts />} />
+              <Route path="orders" element={<AdminOrders />} />
+              <Route path="customers" element={<AdminCustomers />} />
+              <Route path="suppliers" element={<AdminSuppliers />} />
+              <Route path="promotions" element={<AdminPromotions />} />
+              <Route path="contacts" element={<AdminContacts />} />
+              <Route path="users" element={<AdminUsers />} />
+            </Route>
+          </Routes>
+        </Router>
+      </CartProvider>
     </AuthProvider>
   );
 }

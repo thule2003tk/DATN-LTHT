@@ -1,92 +1,84 @@
 import { useEffect, useState } from "react";
-import { getAllUsers, updateUserRole, deleteUser } from "../api/adminUsers";
+import { Table, Button, Alert } from "react-bootstrap";
+import { getUsers, updateUserRole } from "../api/adminUsers";
 import { useAuth } from "../context/AuthContext";
 
-function AdminUsers() {
+function Users() {
   const { user } = useAuth();
   const [users, setUsers] = useState([]);
+  const [error, setError] = useState("");
 
-  const loadUsers = async () => {
-    const data = await getAllUsers();
-    setUsers(data);
+  const fetchUsers = async () => {
+    try {
+      const data = await getUsers();
+      setUsers(data);
+    } catch {
+      setError("Không thể tải danh sách người dùng");
+    }
   };
 
   useEffect(() => {
-    loadUsers();
+    fetchUsers();
   }, []);
 
-  const handleApproveMember = async (id) => {
-    await updateUserRole(id, "member");
-    loadUsers();
-  };
+  const handleRoleChange = async (id, role) => {
+    if (!window.confirm("Xác nhận đổi quyền?")) return;
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Xoá người dùng này?")) {
-      await deleteUser(id);
-      loadUsers();
-    }
+    await updateUserRole(id, role);
+    fetchUsers();
   };
 
   return (
     <div>
-      <h3 className="mb-4 text-success">Quản lý người dùng</h3>
+      <h2 className="text-success mb-4">Quản lý người dùng</h2>
 
-      <table className="table table-bordered bg-white">
+      {error && <Alert variant="danger">{error}</Alert>}
+
+      <Table bordered hover>
         <thead className="table-success">
           <tr>
-            <th>ID</th>
+            <th>#</th>
             <th>Tên đăng nhập</th>
             <th>Email</th>
-            <th>Họ tên</th>
             <th>Vai trò</th>
-            <th>Hành động</th>
+            <th>Duyệt</th>
           </tr>
         </thead>
         <tbody>
-          {users.map(u => (
+          {users.map((u, i) => (
             <tr key={u.ma_nguoidung}>
-              <td>{u.ma_nguoidung}</td>
+              <td>{i + 1}</td>
               <td>{u.ten_dangnhap}</td>
               <td>{u.email}</td>
-              <td>{u.hoten}</td>
               <td>
-                <span className={
-                  u.vai_tro === "admin"
-                    ? "badge bg-danger"
-                    : u.vai_tro === "member"
-                    ? "badge bg-warning text-dark"
-                    : "badge bg-secondary"
-                }>
-                  {u.vai_tro}
-                </span>
+                <b>{u.vai_tro}</b>
               </td>
               <td>
-                {/* Admin duyệt member */}
                 {user.vai_tro === "admin" && u.vai_tro === "customer" && (
-                  <button
-                    className="btn btn-sm btn-success me-2"
-                    onClick={() => handleApproveMember(u.ma_nguoidung)}
+                  <Button
+                    size="sm"
+                    onClick={() => handleRoleChange(u.ma_nguoidung, "member")}
                   >
-                    Duyệt member
-                  </button>
+                    Duyệt Member
+                  </Button>
                 )}
 
-                {/* Chỉ admin được xoá */}
-                {user.vai_tro === "admin" && u.vai_tro !== "admin" && (
-                  <button
-                    className="btn btn-sm btn-danger"
-                    onClick={() => handleDelete(u.ma_nguoidung)}
+                {user.vai_tro === "admin" && u.vai_tro === "member" && (
+                  <Button
+                    size="sm"
+                    variant="warning"
+                    onClick={() => handleRoleChange(u.ma_nguoidung, "customer")}
                   >
-                    Xoá
-                  </button>
+                    Hạ quyền
+                  </Button>
                 )}
               </td>
             </tr>
           ))}
         </tbody>
-      </table>
+      </Table>
     </div>
   );
 }
 
-export default AdminUsers;
+export default Users;

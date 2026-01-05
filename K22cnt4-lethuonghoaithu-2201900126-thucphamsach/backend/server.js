@@ -22,7 +22,6 @@ app.use("/api/donhang", require("./src/routes/donhang"));
 app.use("/api/lienhe", require("./src/routes/lienhe"));
 app.use("/api/admin/users", require("./src/routes/admin.users"));
 
-
 // 4️⃣ ROUTE TEST
 app.get("/", (req, res) => {
   res.send("🚀 Backend Thực Phẩm Sạch đang chạy");

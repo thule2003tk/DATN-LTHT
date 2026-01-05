@@ -4,15 +4,22 @@ const API_URL = "http://localhost:3001/api/admin/users";
 
 const authHeader = () => ({
   headers: {
-    Authorization: `Bearer ${localStorage.getItem("token")}`,
+    Authorization: "Bearer " + localStorage.getItem("token"),
   },
 });
 
-export const getAllUsers = () =>
-  axios.get(API_URL, authHeader()).then(res => res.data);
+// Lấy danh sách user
+export const getUsers = async () => {
+  const res = await axios.get(API_URL, authHeader());
+  return res.data;
+};
 
-export const updateUserRole = (id, vai_tro) =>
-  axios.put(`${API_URL}/${id}/role`, { vai_tro }, authHeader());
-
-export const deleteUser = (id) =>
-  axios.delete(`${API_URL}/${id}`, authHeader());
+// Admin duyệt / đổi role
+export const updateUserRole = async (id, vai_tro) => {
+  const res = await axios.put(
+    `${API_URL}/${id}/role`,
+    { vai_tro },
+    authHeader()
+  );
+  return res.data;
+};
