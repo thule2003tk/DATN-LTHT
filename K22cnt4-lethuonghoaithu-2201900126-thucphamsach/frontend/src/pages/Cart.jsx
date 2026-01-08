@@ -1,115 +1,86 @@
-import { useEffect, useState } from "react";
-import { getGioHang, updateCart, deleteCart } from "../api/giohang";
-import { useNavigate, Link } from "react-router-dom";
-import { Container, Button } from "react-bootstrap";
+import { Link, useNavigate } from "react-router-dom"; // THÊM useNavigate
+import { Container, Button, Table } from "react-bootstrap";
 import { FaHome } from "react-icons/fa";
-
-// THÊM useAuth
-import { useAuth } from "../context/AuthContext.jsx";
+import { useCart } from "../context/CartContext.jsx";
 
 function Cart() {
-  const [cart, setCart] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+  const { cart, updateCart, removeFromCart, totalPrice } = useCart();
+  const navigate = useNavigate(); // THÊM DÒNG NÀY
 
-  // THÊM KIỂM TRA LOGIN
-  const { user } = useAuth();
+  if (cart.length === 0) {
+    return (
+      <Container className="my-5 py-5 text-center">
+        <h1 className="text-success mb-5">Giỏ Hàng Của Bạn</h1>
+        <p className="fs-4 text-muted">Giỏ hàng trống</p>
+        <Button variant="success" size="lg" as={Link} to="/">
+          <FaHome className="me-2" /> Tiếp tục mua sắm
+        </Button>
+      </Container>
+    );
+  }
 
-  useEffect(() => {
-    if (!user) {
-      navigate("/login");
-      return;
-    }
-
-    const fetchCart = async () => {
-      try {
-        setLoading(true);
-        const data = await getGioHang();
-        setCart(data);
-      } catch (err) {
-        console.log(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCart();
-  }, [user, navigate]);
-
-  const totalPrice = cart.reduce(
-    (sum, item) => sum + item.soluong * item.gia,
-    0
-  );
-
-  if (loading) return <div className="text-center py-5"><h4>Đang tải giỏ hàng...</h4></div>;
+  const handleCheckout = () => {
+    navigate("/checkout"); // CHUYỂN SANG TRANG THANH TOÁN
+  };
 
   return (
     <Container className="my-5 py-5">
       <h1 className="text-center mb-5 text-success">Giỏ Hàng Của Bạn</h1>
 
-      {cart.length === 0 ? (
-        <div className="text-center py-5">
-          <p className="fs-4 text-muted">Giỏ hàng trống</p>
-          <Button variant="success" size="lg" as={Link} to="/">
-            <FaHome className="me-2" /> Tiếp tục mua sắm
-          </Button>
-        </div>
-      ) : (
-        <>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Sản phẩm</th>
-                <th>Giá</th>
-                <th>Số lượng</th>
-                <th>Thành tiền</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {cart.map(item => (
-                <tr key={item.ma_giohang}>
-                  <td>{item.ten_sp}</td>
-                  <td>{item.gia.toLocaleString()}₫</td>
-                  <td>
-                    <input
-                      type="number"
-                      min="1"
-                      value={item.soluong}
-                      onChange={e =>
-                        updateCart(item.ma_giohang, Number(e.target.value))
-                          .then(() => fetchCart())
-                      }
-                    />
-                  </td>
-                  <td>{(item.gia * item.soluong).toLocaleString()}₫</td>
-                  <td>
-                    <button
-                      className="btn btn-danger"
-                      onClick={() =>
-                        deleteCart(item.ma_giohang).then(() => fetchCart())
-                      }
-                    >
-                      Xóa
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <Table striped bordered hover responsive className="table-success">
+        <thead className="table-dark">
+          <tr>
+            <th>Sản phẩm</th>
+            <th>Giá</th>
+            <th>Số lượng</th>
+            <th>Thành tiền</th>
+            <th>Hành động</th>
+          </tr>
+        </thead>
+        <tbody>
+          {cart.map((item) => (
+            <tr key={item.ma_sp}>
+              <td>{item.ten_sp}</td>
+              <td>{item.gia.toLocaleString()}₫</td>
+              <td>
+                <input
+                  type="number"
+                  min="1"
+                  value={item.quantity}
+                  onChange={(e) => updateCart(item.ma_sp, e.target.value)}
+                />
+              </td>
+              <td>{(item.gia * item.quantity).toLocaleString()}₫</td>
+              <td>
+                <button
+                  className="btn btn-danger"
+                  onClick={() => removeFromCart(item.ma_sp)}
+                >
+                  Xóa
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
 
-          <h3 className="text-end">Tổng cộng: {totalPrice.toLocaleString()}₫</h3>
+      <h3 className="text-end">Tổng cộng: {totalPrice.toLocaleString()}₫</h3>
 
-          <div className="text-end mt-4">
-            <Button
-              variant="success"
-              size="lg"
-              onClick={() => navigate("/checkout")}
-            >
-              Thanh toán
-            </Button>
-          </div>
-        </>
-      )}
+      <div className="text-end mt-4">
+        <Button
+          variant="success"
+          size="lg"
+          onClick={handleCheckout} // GỌI HÀM CHUYỂN TRANG
+        >
+          Thanh toán
+        </Button>
+      </div>
+
+      <div className="text-center mt-4">
+        <Button variant="outline-success" size="lg" as={Link} to="/">
+          <FaHome className="me-2" /> Trở về Trang Chủ
+        </Button>
+      </div>
     </Container>
   );
 }

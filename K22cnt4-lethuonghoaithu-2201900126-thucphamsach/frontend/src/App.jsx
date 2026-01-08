@@ -7,7 +7,12 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Checkout from "./pages/Checkout";
 import TinTuc from "./pages/TinTuc";
+import Profile from "./pages/Profile";
+import Orders from "./pages/Orders";
 
+import BlogDetail from "./pages/BlogDetail";
+
+// ADMIN
 import AdminLayout from "./admin/AdminLayout";
 import AdminDashboard from "./admin/Dashboard";
 import AdminProducts from "./admin/Products";
@@ -17,18 +22,21 @@ import AdminSuppliers from "./admin/Suppliers";
 import AdminPromotions from "./admin/Promotions";
 import AdminContacts from "./admin/Contacts";
 import AdminUsers from "./admin/Users";
-
+import AdminBlog from "./admin/AdminBlog";
 import AdminRoute from "./admin/AdminRoute";
+
 import { AuthProvider } from "./context/AuthContext";
-import { CartProvider } from "./context/CartContext"; // ✅ thêm CartProvider
+import { CartProvider } from "./context/CartContext";
+
 
 function App() {
   return (
     <AuthProvider>
-      <CartProvider> {/* ✅ bọc CartProvider quanh toàn bộ Router */}
+      <CartProvider>
         <Router>
           <Routes>
-            {/* USER */}
+
+            {/* USER ROUTES */}
             <Route path="/" element={<Home />} />
             <Route path="/products" element={<Products />} />
             <Route path="/product/:id" element={<ProductDetail />} />
@@ -37,8 +45,13 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/tin-tuc" element={<TinTuc />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/orders" element={<Orders />} />
 
-            {/* ADMIN */}
+            {/* BLOG DETAIL */}
+            <Route path="/blog/:id" element={<BlogDetail />} />
+
+            {/* ADMIN ROUTES */}
             <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
               <Route index element={<AdminDashboard />} />
               <Route path="products" element={<AdminProducts />} />
@@ -48,7 +61,9 @@ function App() {
               <Route path="promotions" element={<AdminPromotions />} />
               <Route path="contacts" element={<AdminContacts />} />
               <Route path="users" element={<AdminUsers />} />
+              <Route path="blog" element={<AdminBlog />} />
             </Route>
+
           </Routes>
         </Router>
       </CartProvider>

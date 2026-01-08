@@ -1,81 +1,109 @@
-import { useEffect, useState } from "react";
-import { getGioHang, deleteCart } from "../api/giohang.js";
-import { createOrder } from "../api/donhang.js";
+import { Link, useNavigate } from "react-router-dom";
+import { Container, Button, Table } from "react-bootstrap";
+import { FaHome, FaShoppingCart } from "react-icons/fa";
+import { useCart } from "../context/CartContext.jsx";
 
 function Checkout() {
-  const [cart, setCart] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { cart, totalPrice } = useCart();
+  const navigate = useNavigate();
 
-  const ma_kh = "KH01"; // tạm test, sau này lấy từ user đăng nhập
+  if (cart.length === 0) {
+    return (
+      <Container className="my-5 py-5 text-center">
+        <h1 className="text-success mb-5 fw-bold">Thanh Toán Đơn Hàng</h1>
+        <p className="fs-4 text-muted">Giỏ hàng trống</p>
+        <Button variant="success" size="lg" as={Link} to="/">
+          <FaHome className="me-2" /> Tiếp tục mua sắm
+        </Button>
+      </Container>
+    );
+  }
 
-  const fetchCart = async () => {
-    setLoading(true);
-    const data = await getGioHang(ma_kh);
-    setCart(data);
-    setLoading(false);
+  const handleCheckout = () => {
+    if (cart.length === 0) return;
+
+    // Tạo đơn hàng mới
+    const newOrder = {
+      ma_donhang: "DH" + Date.now(), // mã đơn tạm thời
+      date: new Date().toISOString(),
+      items: cart,
+      total: totalPrice,
+      status: "Chờ xác nhận"
+    };
+
+    // Lưu vào localStorage (danh sách đơn hàng)
+    const savedOrders = JSON.parse(localStorage.getItem("orders") || "[]");
+    savedOrders.push(newOrder);
+    localStorage.setItem("orders", JSON.stringify(savedOrders));
+
+    // Xóa giỏ hàng sau khi đặt thành công
+    localStorage.removeItem("cart");
+
+    // Alert thành công
+    alert(
+      "Đặt hàng thành công! 🎉\n" +
+      `Mã đơn hàng: ${newOrder.ma_donhang}\n` +
+      `Tổng tiền: ${totalPrice.toLocaleString("vi-VN")}₫\n\n` +
+      "Cảm ơn bạn đã mua sắm tại Thực Phẩm Sạch 🥬🌿\n" +
+      "Chúng tôi sẽ liên hệ giao hàng sớm nhất!"
+    );
+
+    // Chuyển về trang chủ
+    navigate("/");
   };
-
-  useEffect(() => {
-    fetchCart();
-  }, []);
-
-  const handleCheckout = async () => {
-    if (cart.length === 0) return alert("Giỏ hàng trống!");
-    try {
-      // Tạo đơn hàng
-      const order = await createOrder(ma_kh);
-      alert("Đặt hàng thành công! Mã đơn: " + order.ma_donhang);
-
-      // Xóa giỏ hàng sau khi đặt
-      for (const item of cart) {
-        await deleteCart(item.ma_giohang);
-      }
-
-      fetchCart(); // cập nhật lại giỏ hàng
-    } catch (err) {
-      console.log(err);
-      alert("Lỗi khi đặt hàng!");
-    }
-  };
-
-  const totalPrice = cart.reduce((sum, item) => sum + item.soluong * item.gia, 0);
-
-  if (loading) return <div>Đang tải...</div>;
 
   return (
-    <div className="container mt-4">
-      <h1>Thanh toán</h1>
-      {cart.length === 0 ? (
-        <p>Giỏ hàng trống</p>
-      ) : (
-        <>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Sản phẩm</th>
-                <th>Giá</th>
-                <th>Số lượng</th>
-                <th>Thành tiền</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cart.map((item) => (
-                <tr key={item.ma_giohang}>
-                  <td>{item.ten_sp}</td>
-                  <td>{item.gia.toLocaleString()}₫</td>
-                  <td>{item.soluong}</td>
-                  <td>{(item.gia * item.soluong).toLocaleString()}₫</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <h3>Tổng cộng: {totalPrice.toLocaleString()}₫</h3>
-          <button className="btn btn-success" onClick={handleCheckout}>
-            Đặt hàng
-          </button>
-        </>
-      )}
-    </div>
+    <Container className="my-5 py-5">
+      <h1 className="text-center mb-5 text-success fw-bold">Thanh Toán Đơn Hàng</h1>
+
+      <Table striped bordered hover responsive className="table-success shadow-sm">
+        <thead className="table-dark">
+          <tr>
+            <th>Sản phẩm</th>
+            <th>Giá</th>
+            <th>Số lượng</th>
+            <th>Thành tiền</th>
+          </tr>
+        </thead>
+        <tbody>
+          {cart.map((item) => (
+            <tr key={item.ma_sp}>
+              <td className="fw-medium">{item.ten_sp}</td>
+              <td>{Number(item.gia).toLocaleString("vi-VN")}₫</td>
+              <td className="text-center">{item.quantity}</td>
+              <td className="fw-bold text-success">
+                {(Number(item.gia) * item.quantity).toLocaleString("vi-VN")}₫
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+
+      <div className="text-end mt-4">
+        <h2 className="text-success">
+          Tổng cộng: <strong className="text-danger fs-1">{totalPrice.toLocaleString("vi-VN")}₫</strong>
+        </h2>
+      </div>
+
+      <div className="text-center mt-5 d-grid gap-3">
+        <Button 
+          variant="success" 
+          size="lg" 
+          className="px-5 py-3 fw-bold" 
+          onClick={handleCheckout}
+        >
+          Xác Nhận Đặt Hàng
+        </Button>
+
+        <Button variant="outline-success" size="lg" as={Link} to="/cart">
+          <FaShoppingCart className="me-2" /> Quay lại giỏ hàng
+        </Button>
+
+        <Button variant="outline-secondary" size="lg" as={Link} to="/">
+          <FaHome className="me-2" /> Trở về Trang Chủ
+        </Button>
+      </div>
+    </Container>
   );
 }
 

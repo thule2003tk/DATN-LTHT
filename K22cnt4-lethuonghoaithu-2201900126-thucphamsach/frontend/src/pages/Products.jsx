@@ -12,8 +12,8 @@ import {
 } from "react-bootstrap";
 import { FaHome, FaShoppingCart } from "react-icons/fa";
 
-// THÊM useAuth ĐỂ KIỂM TRA LOGIN
 import { useAuth } from "../context/AuthContext.jsx";
+import { useCart } from "../context/CartContext.jsx";
 
 function Products() {
   const [products, setProducts] = useState([]);
@@ -38,9 +38,9 @@ function Products() {
 
   const currentCategoryTitle = categoryTitles[categoryQuery] || "Tất Cả Sản Phẩm";
 
-  // THÊM useAuth VÀ navigate
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { addToCart } = useCart();
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -63,7 +63,6 @@ function Products() {
     }
   }, [searchQuery]);
 
-  // LỌC DANH MỤC HOÀN CHỈNH GIỮ NGUYÊN
   useEffect(() => {
     let filtered = products;
 
@@ -118,7 +117,6 @@ function Products() {
 
   return (
     <>
-      {/* Nút Trở về Trang Chủ cố định */}
       <div className="position-fixed top-0 start-0 m-3 z-3">
         <Button variant="success" size="lg" as={Link} to="/" className="shadow-lg rounded-pill px-4 py-3 d-flex align-items-center gap-2">
           <FaHome size={20} />
@@ -129,7 +127,6 @@ function Products() {
       <Container className="my-5 pt-5">
         <h1 className="text-center mb-4 fw-bold text-success">{currentCategoryTitle}</h1>
 
-        {/* Thanh tìm kiếm */}
         <Row className="mb-5">
           <Col md={8} lg={6} className="mx-auto">
             <Form onSubmit={(e) => e.preventDefault()}>
@@ -152,7 +149,6 @@ function Products() {
           </Col>
         </Row>
 
-        {/* Grid sản phẩm - THÊM KIỂM TRA LOGIN CHO NÚT MUA */}
         {filteredProducts.length === 0 ? (
           <div className="text-center py-5">
             <h4 className="text-muted">Không tìm thấy sản phẩm nào phù hợp 😔</h4>
@@ -171,50 +167,59 @@ function Products() {
 
               return (
                 <Col md={4} lg={3} sm={6} key={p.ma_sp}>
-                  <Card className="h-100 border-0 shadow-sm product-card overflow-hidden">
-                    <div className="position-relative">
-                      <img
-                        src={imageUrl}
-                        alt={p.ten_sp}
-                        className="card-img-top"
-                        style={{ height: "280px", objectFit: "cover" }}
-                        onError={(e) => (e.target.src = "/no-image.png")}
-                      />
-                    </div>
-                    <Card.Body className="d-flex flex-column p-4">
-                      <h5 className="card-title fw-bold text-truncate">{p.ten_sp}</h5>
-                      <p className="text-muted small">{p.loai_sp || "Thực phẩm sạch"}</p>
-                      <p className="fw-bold text-success fs-4 my-3">
-                        {Number(p.gia).toLocaleString("vi-VN")}₫
-                      </p>
-                      <div className="mt-auto d-grid gap-2">
-                        <Button
-                          variant="outline-success"
-                          onClick={() => {
-                            if (!user) {
-                              navigate("/login");
-                            } else {
-                              alert("Đã thêm vào giỏ hàng!");
-                            }
-                          }}
-                        >
-                          <FaShoppingCart className="me-2" /> Thêm vào giỏ
-                        </Button>
-                        <Button
-                          variant="success"
-                          onClick={() => {
-                            if (!user) {
-                              navigate("/login");
-                            } else {
-                              alert("Chuyển đến thanh toán!");
-                            }
-                          }}
-                        >
-                          Mua ngay
-                        </Button>
+                  <Link to={`/product/${p.ma_sp}`} className="text-decoration-none">
+                    <Card className="h-100 border-0 shadow-sm product-card overflow-hidden">
+                      <div className="position-relative">
+                        <img
+                          src={imageUrl}
+                          alt={p.ten_sp}
+                          className="card-img-top"
+                          style={{ height: "280px", objectFit: "cover" }}
+                          onError={(e) => (e.target.src = "/no-image.png")}
+                        />
                       </div>
-                    </Card.Body>
-                  </Card>
+                      <Card.Body className="d-flex flex-column p-4">
+                        <h5 className="card-title fw-bold text-truncate">{p.ten_sp}</h5>
+                        <p className="text-muted small">{p.loai_sp || "Thực phẩm sạch"}</p>
+                        <p className="fw-bold text-success fs-4 my-3">
+                          {Number(p.gia).toLocaleString("vi-VN")}₫
+                        </p>
+                        <div className="mt-auto d-grid gap-2">
+                          {/* "THÊM VÀO GIỎ" → THÊM + CHUYỂN SANG GIỎ HÀNG */}
+                          <Button
+                            variant="outline-success"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (!user) {
+                                navigate("/login");
+                              } else {
+                                addToCart(p);
+                                navigate("/cart");
+                              }
+                            }}
+                          >
+                            <FaShoppingCart className="me-2" /> Thêm vào giỏ
+                          </Button>
+                          {/* "MUA NGAY" → THÊM + CHUYỂN SANG THANH TOÁN */}
+                          <Button
+                            variant="success"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (!user) {
+                                navigate("/login");
+                              } else {
+                                addToCart(p);
+                                navigate("/checkout");
+                              }
+                            }}
+                          >
+                            Mua ngay
+                          </Button>
+                        </div>
+                        
+                      </Card.Body>
+                    </Card>
+                  </Link>
                 </Col>
               );
             })}
@@ -222,7 +227,6 @@ function Products() {
         )}
       </Container>
 
-      {/* Hover effect đẹp */}
       <style jsx>{`
         .product-card:hover {
           transform: translateY(-12px);

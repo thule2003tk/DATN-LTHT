@@ -10,6 +10,8 @@ import {
 import { FaLeaf, FaTruck, FaShieldAlt, FaClock, FaShoppingCart, FaUser, FaPhone, FaEnvelope, FaMapMarkerAlt, FaFacebook, FaInstagram, FaYoutube } from "react-icons/fa";
 
 import { useAuth } from "../context/AuthContext.jsx";
+import { useCart } from "../context/CartContext.jsx";
+import { getBlogsByCategory } from "../api/blog.js"; // THÊM API BLOG
 
 const responsive = {
   superLargeDesktop: { breakpoint: { max: 4000, min: 3000 }, items: 1 },
@@ -23,11 +25,18 @@ function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [cartCount, setCartCount] = useState(0);
   const [activeFoodTab, setActiveFoodTab] = useState("monan");
+
+  // THAY hardcode BẰNG state động từ API
+  const [foodSafetyData, setFoodSafetyData] = useState({
+    monan: [],
+    rausach: [],
+    suckhoe: [],
+  });
 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { addToCart, cartCount } = useCart();
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -42,6 +51,23 @@ function Home() {
       }
     };
     fetchProducts();
+  }, []);
+
+  // LOAD BLOG ĐỘNG TỪ API
+  useEffect(() => {
+    const loadBlogs = async () => {
+      try {
+        const monan = await getBlogsByCategory("monan");
+        const rausach = await getBlogsByCategory("rausach");
+        const suckhoe = await getBlogsByCategory("suckhoe");
+
+        setFoodSafetyData({ monan, rausach, suckhoe });
+      } catch (err) {
+        console.error("Lỗi load blog:", err);
+        // Nếu lỗi thì fallback về dữ liệu mẫu (tùy chọn)
+      }
+    };
+    loadBlogs();
   }, []);
 
   const featuredProducts = products;
@@ -61,27 +87,6 @@ function Home() {
     { title: "Thịt Sạch", query: "thit", image: "https://truongfoods.vn/wp-content/uploads/2022/10/dia-chi-mua-thit-lon-sach-an-toan-uy-tin-o-ha-noi.jpg" },
   ];
 
-  const foodSafetyData = {
-    monan: [
-      { title: "Lưỡi Heo Làm Món Gì Ngon?", img: "https://cdn.giaoducthoidai.vn/images/b4508baace0d9fe4c8bbd296e259642ea0ca5f9ecdf263bb917512e465f3d36f8f877887612d47c441e4a6a76afe9cd269bc6861a00ab3b7c6596180092f57d1b3a1a8824b2274e809aa9fa958e9f7fd/luoiheoluoctranggionthomngon4_TORG.jpg", desc1: "12+ món ngon từ lưỡi heo dễ làm", desc2: "Gợi ý món ngon cho bữa cơm gia đình" },
-      { title: "Tép Khô Làm Món Gì Ngon?", img: "https://i.etsystatic.com/18882553/r/il/8f8fb4/6204804366/il_1080xN.6204804366_5bax.jpg", desc1: "14+ món ngon từ tép khô dân dã", desc2: "Những món ăn đậm vị quê hương" },
-      { title: "Sườn Heo Nấu Gì Ngon?", img: "https://bing.com/th?id=OSK.b434f5edf7e8a343ac72cc07ce1d0c40", desc1: "10+ cách chế biến sườn heo hấp dẫn", desc2: "Từ kho, rim đến nướng đều ngon" },
-      { title: "Thịt Gà Ta Làm Món Gì?", img: "https://bing.com/th?id=OSK.291539df032729f5906e855915cbd9f3", desc1: "15+ món ngon từ gà ta thả vườn", desc2: "Gà hấp, chiên, nướng chuẩn vị" }
-    ],
-    rausach: [
-      { title: "Cách Nhận Biết Rau Sạch", img: "https://tgs.vn/wp-content/uploads/2022/09/rau-cai.jpg", desc1: "Phân biệt rau sạch và rau bẩn", desc2: "Bảo vệ sức khỏe gia đình bạn" },
-      { title: "Lợi Ích Rau Hữu Cơ", img: "https://orifarm.vn/wp-content/uploads/2018/09/37781408_2114046418667682_8765224160243744768_o-765x1024.jpg", desc1: "Tại sao nên chọn rau hữu cơ?", desc2: "Tốt cho sức khỏe và môi trường" },
-      { title: "Rửa Rau Sạch Như Thế Nào?", img: "https://tse4.mm.bing.net/th/id/OIP.O_zqAhhizfMoyK7xzkRBqgHaJQ?rs=1&pid=ImgDetMain&o=7&rm=3", desc1: "Mẹo rửa rau loại bỏ thuốc trừ sâu", desc2: "An toàn tuyệt đối cho bữa ăn" },
-      { title: "Bảo Quản Rau Tươi Lâu", img: "https://media.phunutoday.vn/files/news/2025/03/24/5-cach-bao-quan-rau-tuoi-ngon-ca-tuan-rau-xanh-muot-khong-lo-heo-ua-115456.jpg", desc1: "Mẹo giữ rau tươi cả tuần", desc2: "Tiết kiệm và chống lãng phí" }
-    ],
-    suckhoe: [
-      { title: "Ăn Uống Khoa Học", img: "https://th.bing.com/th/id/OIP.XxozmB9IIlSlAeFcNr3AtQHaFv?w=200&h=200&c=10&o=6&dpr=1.3&pid=genserp&rm=2", desc1: "Nguyên tắc ăn uống lành mạnh", desc2: "Cân bằng dinh dưỡng mỗi ngày" },
-      { title: "Thực Phẩm Tốt Cho Tim Mạch", img: "https://tse2.mm.bing.net/th/id/OIP.t787wq1G6GOqMWlR90jI0AHaFj?rs=1&pid=ImgDetMain&o=7&rm=3", desc1: "Top thực phẩm bảo vệ tim mạch", desc2: "Giảm cholesterol tự nhiên" },
-      { title: "Tăng Cường Miễn Dịch", img: "https://th.bing.com/th/id/OIP.Ux9tEWksqFD-uvXs2W2qzQHaFU?w=200&h=200&c=10&o=6&dpr=1.3&pid=genserp&rm=2", desc1: "Thực phẩm tăng sức đề kháng", desc2: "Phòng ngừa bệnh hiệu quả" },
-      { title: "Detox Cơ Thể Tự Nhiên", img: "https://th.bing.com/th/id/OIP.y3HX3m8Bf4vUlFdKhIStbwHaE7?w=158&h=108&c=7&qlt=90&bgcl=d50edf&r=0&o=6&dpr=1.3&pid=13.1", desc1: "Cách thải độc cơ thể tại nhà", desc2: "Làm sạch từ bên trong" }
-    ]
-  };
-
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchTerm.trim()) {
@@ -94,7 +99,7 @@ function Home() {
 
   return (
     <>
-      {/* HEADER - FIX ĐĂNG XUẤT + HIỂN THỊ USER */}
+      {/* HEADER - GIỮ NGUYÊN */}
       <Navbar bg="white" expand="lg" className="shadow-sm py-3 sticky-top">
         <Container>
           <Navbar.Brand as={Link} to="/" className="fw-bold text-success fs-3">
@@ -118,19 +123,29 @@ function Home() {
           <Nav className="align-items-center gap-3">
             {user ? (
               <>
-                <span className="text-dark fw-medium">
-                  Chào <strong>{user.hoten || user.ten_dangnhap}</strong> 🌿
-                </span>
-                <Button
-                  variant="outline-danger"
-                  size="sm"
-                  onClick={() => {
+                <NavDropdown
+                  title={
+                    <span className="text-dark fw-medium">
+                      Chào <strong>{user.hoten || user.ten_dangnhap}</strong> 🌿
+                    </span>
+                  }
+                  id="user-dropdown"
+                  align="end"
+                >
+                  <NavDropdown.Item as={Link} to="/profile">
+                    <FaUser className="me-2" /> Hồ sơ cá nhân
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={Link} to="/orders">
+                    <FaShoppingCart className="me-2" /> Đơn hàng của tôi
+                  </NavDropdown.Item>
+                  <NavDropdown.Divider />
+                  <NavDropdown.Item onClick={() => {
                     logout();
                     alert("Đăng xuất thành công!");
-                  }}
-                >
-                  Đăng xuất
-                </Button>
+                  }}>
+                    <span className="text-danger">Đăng xuất</span>
+                  </NavDropdown.Item>
+                </NavDropdown>
               </>
             ) : (
               <>
@@ -142,6 +157,7 @@ function Home() {
                 </Button>
               </>
             )}
+
             <Nav.Link as={Link} to="/cart" className="position-relative text-dark">
               <FaShoppingCart size={26} />
               {cartCount > 0 && (
@@ -258,7 +274,7 @@ function Home() {
         </Row>
       </Container>
 
-      {/* SẢN PHẨM NỔI BẬT - FIX NÚT MUA */}
+      {/* SẢN PHẨM NỔI BẬT GIỮ NGUYÊN */}
       <Container className="my-5 pb-5">
         <h2 className="text-center mb-5 fw-bold text-success">Sản Phẩm Nổi Bật</h2>
         <Row className="g-4">
@@ -276,49 +292,54 @@ function Home() {
 
               return (
                 <Col md={3} sm={6} lg={3} key={p.ma_sp}>
-                  <Card className="h-100 border-0 shadow-sm product-card position-relative">
-                    <img
-                      src={imageUrl}
-                      alt={p.ten_sp}
-                      className="card-img-top"
-                      style={{ height: "260px", objectFit: "cover" }}
-                      onError={(e) => (e.target.src = "/no-image.png")}
-                    />
-                    <Card.Body className="d-flex flex-column p-4">
-                      <h5 className="card-title fw-bold">{p.ten_sp}</h5>
-                      <p className="text-muted small">{p.loai_sp || "Thực phẩm sạch"}</p>
-                      <p className="fw-bold text-success fs-4 my-3">
-                        {Number(p.gia).toLocaleString()}₫
-                      </p>
-                      <div className="mt-auto d-grid gap-2">
-                        <Button
-                          variant="outline-success"
-                          onClick={() => {
-                            if (!user) {
-                              navigate("/login");
-                            } else {
-                              alert("Đã thêm vào giỏ hàng!");
-                            }
-                          }}
-                        >
-                          <FaShoppingCart className="me-2" />
-                          Thêm vào giỏ
-                        </Button>
-                        <Button
-                          variant="success"
-                          onClick={() => {
-                            if (!user) {
-                              navigate("/login");
-                            } else {
-                              alert("Chuyển đến thanh toán!");
-                            }
-                          }}
-                        >
-                          Mua ngay
-                        </Button>
-                      </div>
-                    </Card.Body>
-                  </Card>
+                  <Link to={`/product/${p.ma_sp}`} className="text-decoration-none">
+                    <Card className="h-100 border-0 shadow-sm product-card position-relative">
+                      <img
+                        src={imageUrl}
+                        alt={p.ten_sp}
+                        className="card-img-top"
+                        style={{ height: "260px", objectFit: "cover" }}
+                        onError={(e) => (e.target.src = "/no-image.png")}
+                      />
+                      <Card.Body className="d-flex flex-column p-4">
+                        <h5 className="card-title fw-bold">{p.ten_sp}</h5>
+                        <p className="text-muted small">{p.loai_sp || "Thực phẩm sạch"}</p>
+                        <p className="fw-bold text-success fs-4 my-3">
+                          {Number(p.gia).toLocaleString()}₫
+                        </p>
+                        <div className="mt-auto d-grid gap-2">
+                          <Button
+                            variant="outline-success"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (!user) {
+                                navigate("/login");
+                              } else {
+                                addToCart(p);
+                                navigate("/cart");
+                              }
+                            }}
+                          >
+                            <FaShoppingCart className="me-2" /> Thêm vào giỏ
+                          </Button>
+                          <Button
+                            variant="success"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (!user) {
+                                navigate("/login");
+                              } else {
+                                addToCart(p);
+                                navigate("/checkout");
+                              }
+                            }}
+                          >
+                            Mua ngay
+                          </Button>
+                        </div>
+                      </Card.Body>
+                    </Card>
+                  </Link>
                 </Col>
               );
             })
@@ -334,7 +355,7 @@ function Home() {
         )}
       </Container>
 
-      {/* AN TOÁN THÔNG TIN THỰC PHẨM GIỮ NGUYÊN */}
+      {/* AN TOÁN THÔNG TIN THỰC PHẨM - LOAD ĐỘNG TỪ API */}
       <Container className="my-5 py-5 bg-light rounded-4">
         <h2 className="text-center mb-5 fw-bold text-success">
           AN TOÁN THÔNG TIN THỰC PHẨM
@@ -367,39 +388,48 @@ function Home() {
         </div>
 
         <Row className="g-4">
-          {foodSafetyData[activeFoodTab].map((item, index) => (
-            <Col lg={3} md={6} key={index}>
-              <Card className="border-0 shadow-sm h-100 rounded-4 overflow-hidden">
-                <div className="text-center pt-4">
-                  <img
-                    src={item.img}
-                    alt={item.title}
-                    className="rounded-circle border border-4 border-success"
-                    style={{ width: "140px", height: "140px", objectFit: "cover" }}
-                  />
-                </div>
-                <Card.Body className="text-center pb-4">
-                  <h5 className="fw-bold text-success mb-3">{item.title}</h5>
-                  <p className="small text-muted mb-2">{item.desc1}</p>
-                  <p className="text-secondary small">{item.desc2}</p>
-                </Card.Body>
-              </Card>
+          {foodSafetyData[activeFoodTab].length === 0 ? (
+            <Col>
+              <p className="text-center text-muted">Chưa có bài viết nào trong mục này.</p>
             </Col>
-          ))}
+          ) : (
+            foodSafetyData[activeFoodTab].map((item, index) => (
+              <Col lg={3} md={6} key={item.id || index}>
+                <Link to={`/blog/${item.id}`} className="text-decoration-none text-dark">
+  <Card className="border-0 shadow-sm h-100 rounded-4 overflow-hidden hover-lift">
+    <div className="text-center pt-4">
+      <img
+        src={item.img}
+        alt={item.title}
+        className="rounded-circle border border-4 border-success"
+        style={{ width: "140px", height: "140px", objectFit: "cover" }}
+      />
+    </div>
+    <Card.Body className="text-center pb-4">
+      <h5 className="fw-bold text-success mb-3">{item.title}</h5>
+      <p className="small text-muted mb-2">{item.desc1}</p>
+      <p className="text-secondary small">{item.desc2}</p>
+    </Card.Body>
+  </Card>
+</Link>
+
+              </Col>
+            ))
+          )}
         </Row>
       </Container>
 
-      {/* HOVER EFFECT GIỮ NGUYÊN */}
+      {/* HOVER EFFECT */}
       <style jsx>{`
-        .product-card:hover {
+        .product-card:hover, .hover-lift:hover {
           transform: translateY(-12px);
           transition: all 0.4s ease;
           box-shadow: 0 20px 40px rgba(0,0,0,0.12) !important;
         }
-        .product-card img {
+        .product-card img, .hover-lift img {
           transition: transform 0.5s ease;
         }
-        .product-card:hover img {
+        .product-card:hover img, .hover-lift:hover img {
           transform: scale(1.08);
         }
         .category-card:hover {

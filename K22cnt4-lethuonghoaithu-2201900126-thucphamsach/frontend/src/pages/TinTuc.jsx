@@ -158,7 +158,7 @@ function TinTuc() {
             <Card className="border-0 shadow-sm h-100">
               <img
                 src="https://nongsandalat.vn/wp-content/uploads/2023/08/la-me-han-quoc-2.jpg"
-                alt="Phạm Như Oanh from 008 purchased Lá Vúng - Lá Mề - Lá Nhip"
+                alt="Phạm Như Oanh from 008 purchased Lá Vúng - Lá Mè - Lá Nhip"
                 className="card-img-top"
                 style={{ height: "300px", objectFit: "cover" }}
               />
