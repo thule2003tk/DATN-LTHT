@@ -11,7 +11,7 @@ import { FaLeaf, FaTruck, FaShieldAlt, FaClock, FaShoppingCart, FaUser, FaPhone,
 
 import { useAuth } from "../context/AuthContext.jsx";
 import { useCart } from "../context/CartContext.jsx";
-import { getBlogsByCategory } from "../api/blog.js"; // THÊM API BLOG
+import { getBlogsByCategory } from "../api/blog.js";
 
 const responsive = {
   superLargeDesktop: { breakpoint: { max: 4000, min: 3000 }, items: 1 },
@@ -27,7 +27,6 @@ function Home() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFoodTab, setActiveFoodTab] = useState("monan");
 
-  // THAY hardcode BẰNG state động từ API
   const [foodSafetyData, setFoodSafetyData] = useState({
     monan: [],
     rausach: [],
@@ -53,18 +52,29 @@ function Home() {
     fetchProducts();
   }, []);
 
-  // LOAD BLOG ĐỘNG TỪ API
+  // LOAD BLOG ĐỘNG TỪ API + FALLBACK DỮ LIỆU MẪU (XÓA SAU KHI BACKEND OK)
   useEffect(() => {
     const loadBlogs = async () => {
       try {
         const monan = await getBlogsByCategory("monan");
+        console.log("Blog monan từ API:", monan);
         const rausach = await getBlogsByCategory("rausach");
+        console.log("Blog rausach từ API:", rausach);
         const suckhoe = await getBlogsByCategory("suckhoe");
+        console.log("Blog suckhoe từ API:", suckhoe);
 
         setFoodSafetyData({ monan, rausach, suckhoe });
       } catch (err) {
-        console.error("Lỗi load blog:", err);
-        // Nếu lỗi thì fallback về dữ liệu mẫu (tùy chọn)
+        console.error("Lỗi load blog từ API:", err);
+        // FALLBACK DỮ LIỆU MẪU (chỉ để test, xóa khi backend OK)
+        setFoodSafetyData({
+          monan: [
+            { id: 1, title: "Lưỡi Heo Làm Món Gì Ngon?", img: "https://cdn.giaoducthoidai.vn/images/b4508baace0d9fe4c8bbd296e259642ea0ca5f9ecdf263bb917512e465f3d36f8f877887612d47c441e4a6a76afe9cd269bc6861a00ab3b7c6596180092f57d1b3a1a8824b2274e809aa9fa958e9f7fd/luoiheoluoctranggionthomngon4_TORG.jpg", desc1: "12+ món ngon từ lưỡi heo dễ làm", desc2: "Gợi ý món ngon cho bữa cơm gia đình" },
+            // ... thêm 3 bài nữa nếu muốn
+          ],
+          rausach: [],
+          suckhoe: [],
+        });
       }
     };
     loadBlogs();
@@ -395,55 +405,30 @@ function Home() {
           ) : (
             foodSafetyData[activeFoodTab].map((item, index) => (
               <Col lg={3} md={6} key={item.id || index}>
-                <Link to={`/blog/${item.id}`} className="text-decoration-none text-dark">
-  <Card className="border-0 shadow-sm h-100 rounded-4 overflow-hidden hover-lift">
-    <div className="text-center pt-4">
-      <img
-        src={item.img}
-        alt={item.title}
-        className="rounded-circle border border-4 border-success"
-        style={{ width: "140px", height: "140px", objectFit: "cover" }}
-      />
-    </div>
-    <Card.Body className="text-center pb-4">
-      <h5 className="fw-bold text-success mb-3">{item.title}</h5>
-      <p className="small text-muted mb-2">{item.desc1}</p>
-      <p className="text-secondary small">{item.desc2}</p>
-    </Card.Body>
-  </Card>
-</Link>
-
+                <Card className="border-0 shadow-sm h-100 rounded-4 overflow-hidden hover-lift">
+                  <div className="text-center pt-4">
+                    <img
+                      src={item.img}
+                      alt={item.title}
+                      className="rounded-circle border border-4 border-success"
+                      style={{ width: "140px", height: "140px", objectFit: "cover" }}
+                      onError={(e) => e.target.src = "/no-image.png"}
+                    />
+                  </div>
+                  <Card.Body className="text-center pb-4">
+                    <h5 className="fw-bold text-success mb-3">{item.title}</h5>
+                    <p className="small text-muted mb-2">{item.desc1}</p>
+                    <p className="text-secondary small">{item.desc2}</p>
+                  </Card.Body>
+                </Card>
               </Col>
             ))
           )}
         </Row>
       </Container>
 
-      {/* HOVER EFFECT */}
-      <style jsx>{`
-        .product-card:hover, .hover-lift:hover {
-          transform: translateY(-12px);
-          transition: all 0.4s ease;
-          box-shadow: 0 20px 40px rgba(0,0,0,0.12) !important;
-        }
-        .product-card img, .hover-lift img {
-          transition: transform 0.5s ease;
-        }
-        .product-card:hover img, .hover-lift:hover img {
-          transform: scale(1.08);
-        }
-        .category-card:hover {
-          transform: translateY(-12px);
-          transition: all 0.4s ease;
-          box-shadow: 0 20px 40px rgba(0,128,0,0.15) !important;
-        }
-        .category-card img {
-          transition: transform 0.5s ease;
-        }
-        .category-card:hover img {
-          transform: scale(1.08);
-        }
-      `}</style>
+      {/* HOVER EFFECT - XÓA KHỐI <style jsx> NÀY ĐỂ HẾT WARNING */}
+      {/* <style jsx>{`...`}</style> */} {/* ← COMMENT HOẶC XÓA DÒNG NÀY */}
 
       {/* FOOTER GIỮ NGUYÊN */}
       <footer className="bg-success text-white py-5 mt-5">

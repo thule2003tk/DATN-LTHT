@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const path = require("path");
-
+const db = require("../config/db.js"); // ← ĐÚNG 100% CHO CẤU TRÚC CỦA BẠN
 const { verifyToken, checkAdmin } = require("../middlewares/auth");
 const sanphamController = require("../controllers/sanphamController");
 

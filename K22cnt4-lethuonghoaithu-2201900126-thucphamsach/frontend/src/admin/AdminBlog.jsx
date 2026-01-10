@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getAllBlog, addBlog, updateBlog, deleteBlog } from "../api/blog.js"; // tạo api/blog.js tương tự auth
+import { getAllBlog, addBlog, updateBlog, deleteBlog } from "../api/blog.js"; 
 import { Container, Table, Button, Modal, Form, Alert } from "react-bootstrap";
 
 function AdminBlog() {
@@ -12,6 +12,7 @@ function AdminBlog() {
     desc1: "",
     desc2: "",
     category: "monan",
+    content: "",
   });
   const [message, setMessage] = useState("");
 
@@ -53,6 +54,7 @@ function AdminBlog() {
       desc1: blog.desc1,
       desc2: blog.desc2,
       category: blog.category,
+      content: blog.content || "",
     });
     setShowModal(true);
   };
@@ -66,7 +68,7 @@ function AdminBlog() {
 
   return (
     <Container>
-      <h1>Quản Lý Blog</h1>
+      <h1 className="my-4">Quản Lý Blog</h1>
       <Button variant="success" onClick={() => setShowModal(true)}>
         Thêm Blog Mới
       </Button>
@@ -77,6 +79,7 @@ function AdminBlog() {
             <th>Title</th>
             <th>Category</th>
             <th>Hình ảnh</th>
+            <th>Content</th> {/* ✅ Thêm cột content */}
             <th>Hành động</th>
           </tr>
         </thead>
@@ -85,9 +88,18 @@ function AdminBlog() {
             <tr key={blog.id}>
               <td>{blog.title}</td>
               <td>{blog.category}</td>
-              <td><img src={blog.img} alt={blog.title} style={{ width: "50px" }} /></td>
               <td>
-                <Button variant="primary" size="sm" onClick={() => handleEdit(blog)}>
+                <img
+                  src={blog.img}
+                  alt={blog.title}
+                  style={{ width: "50px", height: "50px", objectFit: "cover" }}
+                />
+              </td>
+              <td>
+                <div style={{ maxHeight: "80px", overflow: "hidden" }} dangerouslySetInnerHTML={{ __html: blog.content }} />
+              </td>
+              <td>
+                <Button variant="primary" size="sm" onClick={() => handleEdit(blog)} className="me-2">
                   Sửa
                 </Button>
                 <Button variant="danger" size="sm" onClick={() => handleDelete(blog.id)}>
@@ -99,7 +111,8 @@ function AdminBlog() {
         </tbody>
       </Table>
 
-      <Modal show={showModal} onHide={() => setShowModal(false)}>
+      {/* Modal Thêm / Sửa Blog */}
+      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
         <Modal.Header closeButton>
           <Modal.Title>{editingBlog ? "Sửa Blog" : "Thêm Blog Mới"}</Modal.Title>
         </Modal.Header>
@@ -129,6 +142,16 @@ function AdminBlog() {
                 <option value="rausach">RAU SẠCH</option>
                 <option value="suckhoe">SỨC KHỎE</option>
               </Form.Select>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Content (HTML)</Form.Label>
+              <Form.Control
+                name="content"
+                as="textarea"
+                rows={5}
+                value={formData.content}
+                onChange={handleChange}
+              />
             </Form.Group>
             <Button variant="success" type="submit">
               Lưu

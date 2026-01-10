@@ -14,10 +14,21 @@ export const createOrder = async (ma_kh) => {
 
 // 2️⃣ Lấy tất cả đơn hàng (Admin)
 export const getAllOrders = async () => {
-  const res = await fetch(API_URL);
-  const data = await res.json();
-  return data;
+  const token = localStorage.getItem("token"); // 🔹 token phải được lưu khi admin login
+  const res = await fetch(`${API_URL}/admin`, {
+    headers: {
+      Authorization: `Bearer ${token}`, // 🔹 gửi token
+    },
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Dữ liệu trả về không hợp lệ"); // 🔹 xử lý lỗi 401
+  }
+
+  return await res.json(); // ✅ giờ đây sẽ là mảng orders
 };
+
 
 // 3️⃣ Lấy chi tiết đơn hàng theo mã đơn (Admin xem chi tiết)
 export const getOrderDetail = async (ma_donhang) => {

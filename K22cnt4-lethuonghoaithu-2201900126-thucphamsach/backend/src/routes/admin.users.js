@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const db = require("../config/db");
+const db = require("../config/db.js"); // ← ĐÚNG 100% CHO CẤU TRÚC CỦA BẠN
 const { verifyToken, checkAdmin } = require("../middlewares/auth");
 
 /**

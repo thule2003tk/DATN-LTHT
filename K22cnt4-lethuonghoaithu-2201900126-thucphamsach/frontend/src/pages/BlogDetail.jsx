@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { getBlogDetail } from "../api/blog";
+import { getBlogDetail } from "../api/blog.js";
 
 function BlogDetail() {
   const { id } = useParams();

@@ -1,50 +1,64 @@
+import { useEffect, useState } from "react";
+import { Bar } from "react-chartjs-2";
+import axios from "axios";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+
 function AdminDashboard() {
+  const [chartData, setChartData] = useState({
+    labels: ["CN", "T2", "T3", "T4", "T5", "T6", "T7"],
+    datasets: [
+      {
+        label: "Doanh thu (₫)",
+        data: [0, 0, 0, 0, 0, 0, 0],
+        backgroundColor: "rgba(75, 192, 192, 0.6)",
+      },
+    ],
+  });
+
+  useEffect(() => {
+    fetchChartData();
+  }, []);
+
+  const fetchChartData = async () => {
+    try {
+      const token = localStorage.getItem("token"); // nếu có JWT
+      const res = await axios.get("http://localhost:3001/api/admin/revenue-week", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setChartData({
+        labels: ["CN", "T2", "T3", "T4", "T5", "T6", "T7"],
+        datasets: [
+          {
+            label: "Doanh thu (₫)",
+            data: res.data,
+            backgroundColor: "rgba(75, 192, 192, 0.6)",
+          },
+        ],
+      });
+    } catch (err) {
+      console.error("Lỗi lấy dữ liệu biểu đồ:", err);
+    }
+  };
+
   return (
     <div>
       <h2 className="mb-4 text-success">Tổng quan hệ thống</h2>
 
-      <div className="row g-4">
-        <div className="col-md-3">
-          <div className="card border-0 shadow-sm">
-            <div className="card-body text-center">
-              <i className="bi bi-cart-check text-success fs-1 mb-3"></i>
-              <h4>156</h4>
-              <p className="text-muted mb-0">Đơn hàng hôm nay</p>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="card border-0 shadow-sm">
-            <div className="card-body text-center">
-              <i className="bi bi-currency-dollar text-primary fs-1 mb-3"></i>
-              <h4>48.500.000 ₫</h4>
-              <p className="text-muted mb-0">Doanh thu tháng này</p>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="card border-0 shadow-sm">
-            <div className="card-body text-center">
-              <i className="bi bi-people text-info fs-1 mb-3"></i>
-              <h4>1.234</h4>
-              <p className="text-muted mb-0">Khách hàng</p>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-3">
-          <div className="card border-0 shadow-sm">
-            <div className="card-body text-center">
-              <i className="bi bi-box-seam text-warning fs-1 mb-3"></i>
-              <h4>89</h4>
-              <p className="text-muted mb-0">Sản phẩm</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
+      {/* Biểu đồ doanh thu tuần */}
       <div className="mt-5">
-        <h4>Chào mừng bạn đến với trang quản trị!</h4>
-        <p>Hãy chọn menu bên trái để bắt đầu quản lý.</p>
+        <h4>Doanh thu tuần</h4>
+        <Bar data={chartData} options={{ responsive: true, plugins: { legend: { position: "top" } } }} />
       </div>
     </div>
   );
