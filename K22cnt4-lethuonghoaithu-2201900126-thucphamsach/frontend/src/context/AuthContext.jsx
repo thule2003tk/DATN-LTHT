@@ -11,31 +11,49 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initAuth = async () => {
       const token = localStorage.getItem("token");
-      const savedUser = localStorage.getItem("user");
-
       if (!token) {
         setLoading(false);
         return;
       }
 
-      // ƯU TIÊN USER TỪ LOCAL
+      // Ưu tiên từ localStorage
+      const savedUser = localStorage.getItem("user");
       if (savedUser) {
-        setUser(JSON.parse(savedUser));
+        const parsed = JSON.parse(savedUser);
+        console.log("User từ localStorage:", parsed);
+        setUser(parsed);
         setLoading(false);
         return;
       }
 
-      // fallback: gọi API
+      // Gọi API profile
       try {
         const res = await getProfile();
-        setUser(res.user);
-        localStorage.setItem("user", JSON.stringify(res.user));
-      } catch {
-        localStorage.clear();
-        setUser(null);
-      }
+        console.log("Response từ getProfile:", res); // ← Quan trọng: xem backend trả gì
 
-      setLoading(false);
+        // Linh hoạt: lấy user từ res.user hoặc res trực tiếp
+        const rawUser = res.user || res;
+
+        // Normalize: tự động lấy ma_kh dù tên trường khác nhau
+        const ma_kh = rawUser.ma_kh || rawUser.id || rawUser.maKh || rawUser.customer_id || rawUser.ma_khach_hang || null;
+
+        const normalizedUser = {
+          ...rawUser,
+          ma_kh: ma_kh,  // Đảm bảo luôn có ma_kh
+        };
+
+        console.log("User sau khi normalize (có ma_kh?):", normalizedUser);
+
+        setUser(normalizedUser);
+        localStorage.setItem("user", JSON.stringify(normalizedUser));
+      } catch (err) {
+        console.error("Lỗi get profile:", err);
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
     };
 
     initAuth();

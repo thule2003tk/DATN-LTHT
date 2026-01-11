@@ -16,7 +16,7 @@ import BlogDetail from "./pages/BlogDetail";
 import AdminLayout from "./admin/AdminLayout";
 import AdminDashboard from "./admin/Dashboard";
 import AdminProducts from "./admin/Products";
-import AdminOrders from "./admin/Orders";
+import AdminOrders from "./admin/AdminOrders";
 import AdminCustomers from "./admin/Customers";
 import AdminSuppliers from "./admin/Suppliers";
 import AdminPromotions from "./admin/Promotions";

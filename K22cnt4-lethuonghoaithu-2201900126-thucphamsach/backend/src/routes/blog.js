@@ -5,7 +5,7 @@ const db = require("../config/db.js");
 // GET danh sách blog (filter category)
 router.get("/", (req, res) => {
   const { category } = req.query;
-  let sql = "SELECT id, title, img, desc1, desc2, category FROM blog";
+  let sql = "SELECT id, title, img, desc1, desc2, category,content FROM blog";
   let params = [];
 
   if (category) {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { getAllBlog, addBlog, updateBlog, deleteBlog } from "../api/blog.js"; 
-import { Container, Table, Button, Modal, Form, Alert } from "react-bootstrap";
+import { Container, Table, Button, Modal, Form, Alert, OverlayTrigger, Tooltip } from "react-bootstrap";
 
 function AdminBlog() {
   const [blogs, setBlogs] = useState([]);
@@ -15,14 +15,29 @@ function AdminBlog() {
     content: "",
   });
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
 
   useEffect(() => {
     fetchBlogs();
   }, []);
 
   const fetchBlogs = async () => {
-    const data = await getAllBlog();
-    setBlogs(data);
+    try {
+      setLoading(true);
+      setFetchError(null);
+      const data = await getAllBlog();
+      console.log("Dữ liệu blog từ API (admin):", data);
+      const blogList = Array.isArray(data) ? data : data?.blogs || data?.data || [];
+      console.log("Danh sách blog sau xử lý:", blogList);
+      setBlogs(blogList);
+    } catch (err) {
+      console.error("Lỗi fetchBlogs:", err);
+      setFetchError("Không thể tải danh sách blog. Lỗi: " + (err.message || "Server error"));
+      setBlogs([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -42,36 +57,56 @@ function AdminBlog() {
       setShowModal(false);
       fetchBlogs();
     } catch (err) {
-      setMessage("Lỗi!");
+      setMessage("Lỗi: " + (err.message || "Không thể lưu"));
     }
   };
 
   const handleEdit = (blog) => {
     setEditingBlog(blog);
     setFormData({
-      title: blog.title,
-      img: blog.img,
-      desc1: blog.desc1,
-      desc2: blog.desc2,
-      category: blog.category,
+      title: blog.title || "",
+      img: blog.img || "",
+      desc1: blog.desc1 || "",
+      desc2: blog.desc2 || "",
+      category: blog.category || "monan",
       content: blog.content || "",
     });
     setShowModal(true);
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Xác nhận xóa?")) {
-      await deleteBlog(id);
-      fetchBlogs();
+    if (window.confirm("Xác nhận xóa bài viết này?")) {
+      try {
+        await deleteBlog(id);
+        setMessage("Xóa thành công!");
+        fetchBlogs();
+      } catch (err) {
+        setMessage("Lỗi xóa: " + (err.message || ""));
+      }
     }
   };
 
   return (
     <Container>
       <h1 className="my-4">Quản Lý Blog</h1>
-      <Button variant="success" onClick={() => setShowModal(true)}>
+
+      <Button variant="success" onClick={() => {
+        setEditingBlog(null);
+        setFormData({
+          title: "",
+          img: "",
+          desc1: "",
+          desc2: "",
+          category: "monan",
+          content: "",
+        });
+        setShowModal(true);
+      }}>
         Thêm Blog Mới
       </Button>
+
+      {loading && <p className="mt-3 text-center">Đang tải danh sách blog...</p>}
+      {fetchError && <Alert variant="danger" className="mt-3">{fetchError}</Alert>}
 
       <Table striped bordered hover className="mt-3">
         <thead>
@@ -79,35 +114,67 @@ function AdminBlog() {
             <th>Title</th>
             <th>Category</th>
             <th>Hình ảnh</th>
-            <th>Content</th> {/* ✅ Thêm cột content */}
+            <th>Content (xem trước)</th>
             <th>Hành động</th>
           </tr>
         </thead>
         <tbody>
-          {blogs.map((blog) => (
-            <tr key={blog.id}>
-              <td>{blog.title}</td>
-              <td>{blog.category}</td>
-              <td>
-                <img
-                  src={blog.img}
-                  alt={blog.title}
-                  style={{ width: "50px", height: "50px", objectFit: "cover" }}
-                />
-              </td>
-              <td>
-                <div style={{ maxHeight: "80px", overflow: "hidden" }} dangerouslySetInnerHTML={{ __html: blog.content }} />
-              </td>
-              <td>
-                <Button variant="primary" size="sm" onClick={() => handleEdit(blog)} className="me-2">
-                  Sửa
-                </Button>
-                <Button variant="danger" size="sm" onClick={() => handleDelete(blog.id)}>
-                  Xóa
-                </Button>
+          {blogs.length === 0 && !loading ? (
+            <tr>
+              <td colSpan="5" className="text-center text-muted">
+                Chưa có bài viết nào. Hãy thêm mới!
               </td>
             </tr>
-          ))}
+          ) : (
+            blogs.map((blog) => (
+              <tr key={blog.id}>
+                <td>{blog.title || "Chưa có tiêu đề"}</td>
+                <td>{blog.category}</td>
+                <td>
+                  <img
+                    src={blog.img}
+                    alt={blog.title}
+                    style={{ width: "80px", height: "80px", objectFit: "cover", borderRadius: "8px" }}
+                    onError={(e) => (e.target.src = "/no-image.png")}
+                  />
+                </td>
+                <td>
+                  {/* CỘT CONTENT ĐẸP HƠN: tooltip hover xem đầy đủ + scroll */}
+                  <OverlayTrigger
+                    placement="top"
+                    overlay={
+                      <Tooltip id={`tooltip-${blog.id}`}>
+                        {blog.content?.replace(/<[^>]*>/g, ' ') || "Chưa có nội dung"} {/* Text sạch khi hover */}
+                      </Tooltip>
+                    }
+                  >
+                    <div
+                      style={{
+                        maxHeight: "120px",
+                        overflowY: "auto",
+                        whiteSpace: "pre-wrap",
+                        fontSize: "0.9rem",
+                        lineHeight: "1.4",
+                        padding: "8px",
+                        background: "#f8f9fa",
+                        borderRadius: "4px",
+                        cursor: "help",
+                      }}
+                      dangerouslySetInnerHTML={{ __html: blog.content?.substring(0, 300) + (blog.content?.length > 300 ? "..." : "") || "<p>Chưa có nội dung chi tiết</p>" }}
+                    />
+                  </OverlayTrigger>
+                </td>
+                <td>
+                  <Button variant="primary" size="sm" onClick={() => handleEdit(blog)} className="me-2">
+                    Sửa
+                  </Button>
+                  <Button variant="danger" size="sm" onClick={() => handleDelete(blog.id)}>
+                    Xóa
+                  </Button>
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </Table>
 
@@ -117,7 +184,7 @@ function AdminBlog() {
           <Modal.Title>{editingBlog ? "Sửa Blog" : "Thêm Blog Mới"}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {message && <Alert variant="success">{message}</Alert>}
+          {message && <Alert variant={message.includes("Lỗi") ? "danger" : "success"}>{message}</Alert>}
           <Form onSubmit={handleSubmit}>
             <Form.Group className="mb-3">
               <Form.Label>Title</Form.Label>
@@ -144,11 +211,11 @@ function AdminBlog() {
               </Form.Select>
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label>Content (HTML)</Form.Label>
+              <Form.Label>Content (HTML - có thể để trống)</Form.Label>
               <Form.Control
                 name="content"
                 as="textarea"
-                rows={5}
+                rows={10}
                 value={formData.content}
                 onChange={handleChange}
               />

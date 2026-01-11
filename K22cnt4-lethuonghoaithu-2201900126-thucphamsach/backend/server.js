@@ -28,7 +28,7 @@ app.use("/api/khuyenmai", require("./src/routes/khuyenmai"));
 app.use("/api/donhang", require("./src/routes/donhang"));
 app.use("/api/lienhe", require("./src/routes/lienhe"));
 app.use("/api/admin/users", require("./src/routes/admin.users"));
-
+app.use("/api/khachhang", require("./src/routes/khachhang"));
 // 🟢 Test endpoint
 app.get("/", (req, res) => {
   res.send("🚀 Backend đang chạy!");

@@ -52,29 +52,16 @@ function Home() {
     fetchProducts();
   }, []);
 
-  // LOAD BLOG ĐỘNG TỪ API + FALLBACK DỮ LIỆU MẪU (XÓA SAU KHI BACKEND OK)
   useEffect(() => {
     const loadBlogs = async () => {
       try {
         const monan = await getBlogsByCategory("monan");
-        console.log("Blog monan từ API:", monan);
         const rausach = await getBlogsByCategory("rausach");
-        console.log("Blog rausach từ API:", rausach);
         const suckhoe = await getBlogsByCategory("suckhoe");
-        console.log("Blog suckhoe từ API:", suckhoe);
 
         setFoodSafetyData({ monan, rausach, suckhoe });
       } catch (err) {
-        console.error("Lỗi load blog từ API:", err);
-        // FALLBACK DỮ LIỆU MẪU (chỉ để test, xóa khi backend OK)
-        setFoodSafetyData({
-          monan: [
-            { id: 1, title: "Lưỡi Heo Làm Món Gì Ngon?", img: "https://cdn.giaoducthoidai.vn/images/b4508baace0d9fe4c8bbd296e259642ea0ca5f9ecdf263bb917512e465f3d36f8f877887612d47c441e4a6a76afe9cd269bc6861a00ab3b7c6596180092f57d1b3a1a8824b2274e809aa9fa958e9f7fd/luoiheoluoctranggionthomngon4_TORG.jpg", desc1: "12+ món ngon từ lưỡi heo dễ làm", desc2: "Gợi ý món ngon cho bữa cơm gia đình" },
-            // ... thêm 3 bài nữa nếu muốn
-          ],
-          rausach: [],
-          suckhoe: [],
-        });
+        console.error("Lỗi load blog:", err);
       }
     };
     loadBlogs();
@@ -143,11 +130,9 @@ function Home() {
                   align="end"
                 >
                   <NavDropdown.Item as={Link} to="/profile">
-                    <FaUser className="me-2" /> Hồ sơ cá nhân
-                  </NavDropdown.Item>
+                    <FaUser className="me-2" /> Hồ sơ cá nhân</NavDropdown.Item>
                   <NavDropdown.Item as={Link} to="/orders">
-                    <FaShoppingCart className="me-2" /> Đơn hàng của tôi
-                  </NavDropdown.Item>
+                    <FaShoppingCart className="me-2" /> Đơn hàng của tôi</NavDropdown.Item>
                   <NavDropdown.Divider />
                   <NavDropdown.Item onClick={() => {
                     logout();
@@ -365,7 +350,7 @@ function Home() {
         )}
       </Container>
 
-      {/* AN TOÁN THÔNG TIN THỰC PHẨM - LOAD ĐỘNG TỪ API */}
+      {/* AN TOÁN THÔNG TIN THỰC PHẨM - THÊM LINK CHI TIẾT */}
       <Container className="my-5 py-5 bg-light rounded-4">
         <h2 className="text-center mb-5 fw-bold text-success">
           AN TOÁN THÔNG TIN THỰC PHẨM
@@ -405,29 +390,36 @@ function Home() {
           ) : (
             foodSafetyData[activeFoodTab].map((item, index) => (
               <Col lg={3} md={6} key={item.id || index}>
-                <Card className="border-0 shadow-sm h-100 rounded-4 overflow-hidden hover-lift">
-                  <div className="text-center pt-4">
-                    <img
-                      src={item.img}
-                      alt={item.title}
-                      className="rounded-circle border border-4 border-success"
-                      style={{ width: "140px", height: "140px", objectFit: "cover" }}
-                      onError={(e) => e.target.src = "/no-image.png"}
-                    />
-                  </div>
-                  <Card.Body className="text-center pb-4">
-                    <h5 className="fw-bold text-success mb-3">{item.title}</h5>
-                    <p className="small text-muted mb-2">{item.desc1}</p>
-                    <p className="text-secondary small">{item.desc2}</p>
-                  </Card.Body>
-                </Card>
+                {/* THÊM LINK Ở ĐÂY - Click card chuyển đến trang chi tiết */}
+                <Link
+                  to={`/blog/${item.id}`}  // ← ĐÂY LÀ CHỖ THÊM (đường dẫn /blog/:id)
+                  className="text-decoration-none text-dark"
+                  style={{ cursor: "pointer" }}
+                >
+                  <Card className="border-0 shadow-sm h-100 rounded-4 overflow-hidden hover-lift">
+                    <div className="text-center pt-4">
+                      <img
+                        src={item.img}
+                        alt={item.title}
+                        className="rounded-circle border border-4 border-success"
+                        style={{ width: "140px", height: "140px", objectFit: "cover" }}
+                        onError={(e) => e.target.src = "/no-image.png"}
+                      />
+                    </div>
+                    <Card.Body className="text-center pb-4">
+                      <h5 className="fw-bold text-success mb-3">{item.title}</h5>
+                      <p className="small text-muted mb-2">{item.desc1}</p>
+                      <p className="text-secondary small">{item.desc2}</p>
+                    </Card.Body>
+                  </Card>
+                </Link>
               </Col>
             ))
           )}
         </Row>
       </Container>
 
-      {/* HOVER EFFECT - XÓA KHỐI <style jsx> NÀY ĐỂ HẾT WARNING */}
+      {/* HOVER EFFECT - XÓA KHỐI NÀY ĐỂ HẾT WARNING JSX */}
       {/* <style jsx>{`...`}</style> */} {/* ← COMMENT HOẶC XÓA DÒNG NÀY */}
 
       {/* FOOTER GIỮ NGUYÊN */}
