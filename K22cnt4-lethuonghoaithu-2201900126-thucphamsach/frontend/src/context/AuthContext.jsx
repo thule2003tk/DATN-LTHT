@@ -29,8 +29,7 @@ export const AuthProvider = ({ children }) => {
       // Gọi API profile
       try {
         const res = await getProfile();
-        console.log("Response từ getProfile:", res); // ← Quan trọng: xem backend trả gì
-
+        console.log("Response từ getProfile:", res);
         // Linh hoạt: lấy user từ res.user hoặc res trực tiếp
         const rawUser = res.user || res;
 
@@ -39,7 +38,7 @@ export const AuthProvider = ({ children }) => {
 
         const normalizedUser = {
           ...rawUser,
-          ma_kh: ma_kh,  // Đảm bảo luôn có ma_kh
+          ma_kh: ma_kh,
         };
 
         console.log("User sau khi normalize (có ma_kh?):", normalizedUser);

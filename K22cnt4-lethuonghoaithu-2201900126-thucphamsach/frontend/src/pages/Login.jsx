@@ -39,13 +39,6 @@ function Login() {
     try {
       // 🔐 GỌI API LOGIN
       const res = await login(ten_dangnhap, matkhau);
-
-      /**
-       * 🔥 BẮT BUỘC PHẢI LÀM 3 VIỆC
-       * 1. Lưu token
-       * 2. Lưu user
-       * 3. Set AuthContext
-       */
       localStorage.setItem("token", res.token);
       localStorage.setItem("user", JSON.stringify(res.user));
       setUser(res.user);

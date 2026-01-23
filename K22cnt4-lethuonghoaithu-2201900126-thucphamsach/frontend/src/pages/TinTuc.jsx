@@ -5,8 +5,6 @@ import { Link } from "react-router-dom";
 function TinTuc() {
   return (
     <>
-      {/* Giữ nguyên header và nav như trang Home để đồng bộ */}
-      {/* Header trắng */}
       <header className="bg-white shadow-sm py-3 sticky-top">
         <Container>
           <div className="d-flex justify-content-between align-items-center">
