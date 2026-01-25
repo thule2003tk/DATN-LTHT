@@ -4,9 +4,9 @@ import { Link, useNavigate } from "react-router-dom";
 import Carousel from "react-multi-carousel";
 import "react-multi-carousel/lib/styles.css";
 import Header from "../components/Header";
-import { 
-  Container, Row, Col, Card, Button, Form, InputGroup, 
-  Navbar, Nav, Badge, NavDropdown 
+import {
+  Container, Row, Col, Card, Button, Form, InputGroup,
+  Navbar, Nav, Badge, NavDropdown
 } from "react-bootstrap";
 import { FaLeaf, FaTruck, FaShieldAlt, FaClock, FaShoppingCart, FaUser, FaPhone, FaEnvelope, FaMapMarkerAlt, FaFacebook, FaInstagram, FaYoutube } from "react-icons/fa";
 
@@ -42,7 +42,13 @@ function Home() {
     const fetchProducts = async () => {
       try {
         const data = await getAllSanPham();
-        setProducts(data);
+        console.log("DEBUG: Products data:", data);
+        if (Array.isArray(data)) {
+          setProducts(data);
+        } else {
+          console.error("DEBUG: Data is not array:", data);
+          setProducts([]);
+        }
       } catch (err) {
         console.error(err);
         setError("Không thể tải sản phẩm");
@@ -98,9 +104,9 @@ function Home() {
   return (
     <>
       <Header
-      searchTerm={searchTerm}
-      setSearchTerm={setSearchTerm}
-      categories={categories}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        categories={categories}
       />
       {/* SLIDER BANNER GIỮ NGUYÊN */}
       <Carousel responsive={responsive} autoPlay autoPlaySpeed={5000} infinite showDots={true}>
@@ -179,7 +185,7 @@ function Home() {
               const imageUrl = p.hinhanh
                 ? p.hinhanh.startsWith("http")
                   ? p.hinhanh
-                  : `http://localhost:3001/uploads/${p.hinhanh}`
+                  : `${import.meta.env.VITE_API_BASE_URL.replace("/api", "")}/uploads/${p.hinhanh}`
                 : "/no-image.png";
 
               return (

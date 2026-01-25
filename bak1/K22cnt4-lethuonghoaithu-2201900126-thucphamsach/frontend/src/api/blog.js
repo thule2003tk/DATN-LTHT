@@ -1,7 +1,8 @@
-const API_URL = "http://localhost:3001/api/blog";
+const API_URL = `${import.meta.env.VITE_API_BASE_URL}/blog`;
 
 export const getAllBlog = async () => {
   try {
+    console.log("DEBUG: Calling Blog API_URL:", API_URL);
     const res = await fetch(API_URL);
     if (!res.ok) {
       console.error("Lỗi GET all blog:", res.status, await res.text());

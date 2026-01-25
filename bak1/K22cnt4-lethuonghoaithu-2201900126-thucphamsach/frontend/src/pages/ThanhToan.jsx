@@ -18,7 +18,7 @@ function ThanhToan() {
     setSuccess("");
 
     try {
-      const res = await fetch("http://localhost:3001/api/donhang/thanhtoan", {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/donhang/thanhtoan`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

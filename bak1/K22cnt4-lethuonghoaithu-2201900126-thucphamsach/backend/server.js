@@ -7,7 +7,14 @@ const app = express();
 
 // 🟢 CORS – đặt đầu tiên
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: (origin, callback) => {
+    const allowedOrigins = ["http://localhost:5173", "http://localhost:5174"];
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
@@ -21,6 +28,7 @@ app.use("/uploads", express.static(path.join(__dirname, "src/uploads")));
 
 // 🟢 Import routes
 app.use("/api/blog", require("./src/routes/blog"));
+app.use("/api/admin", require("./src/routes/admin")); // New admin route
 app.use("/api/auth", require("./src/routes/auth"));
 app.use("/api/sanpham", require("./src/routes/sanpham"));
 app.use("/api/giohang", require("./src/routes/giohang"));

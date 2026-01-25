@@ -80,7 +80,7 @@ function AdminProducts() {
               <td>
                 {p.hinhanh ? (
                   <Image
-                    src={`http://localhost:3001/uploads/${p.hinhanh}`}
+                    src={`${import.meta.env.VITE_API_BASE_URL.replace("/api", "")}/uploads/${p.hinhanh}`}
                     alt={p.ten_sp}
                     width={80}
                     height={80}
