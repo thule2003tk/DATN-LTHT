@@ -1,57 +1,57 @@
-/* ===== FOOTER THỰC PHẨM SẠCH (CÓ MÀU RÕ) ===== */
+/* ===== FOOTER - THỰC PHẨM SẠCH (CÂN BẰNG) ===== */
 .site-footer {
-  background-color: #f1f8f4; /* XANH NHẠT RÕ */
-  padding: 64px 0 0;
+  background-color: #fafaf7; /* NỀN TRẮNG NGÀ */
+  padding: 60px 0 0;
   font-size: 15px;
-  color: #1f2937;
-  border-top: 2px solid #2e7d32;
+  color: #2b2b2b;
+  border-top: 1px solid #e4e6e8;
 }
 
 /* LOGO */
 .footer-logo {
   font-size: 26px;
   font-weight: 700;
-  color: #1b5e20;
+  color: #2f7d32;
   margin-bottom: 14px;
 }
 
 /* MÔ TẢ */
 .footer-desc {
-  color: #374151;
+  color: #5f6368;
   line-height: 1.75;
   max-width: 360px;
 }
 
-/* SOCIAL */
+/* SOCIAL ICON */
 .footer-social {
-  margin-top: 20px;
+  margin-top: 18px;
 }
 
 .footer-social a {
-  width: 44px;
-  height: 44px;
-  background-color: #2e7d32;
-  color: #ffffff;
+  width: 40px;
+  height: 40px;
+  background-color: #eef3ee;
+  color: #2f7d32;
   border-radius: 50%;
-  margin-right: 12px;
-  font-size: 18px;
+  margin-right: 10px;
+  font-size: 17px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
 }
 
 .footer-social a:hover {
-  background-color: #1b5e20;
-  transform: translateY(-4px);
+  background-color: #2f7d32;
+  color: #ffffff;
 }
 
-/* TIÊU ĐỀ CỘT */
+/* TIÊU ĐỀ */
 .footer-title {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
-  margin-bottom: 18px;
-  color: #1b5e20;
+  margin-bottom: 16px;
+  color: #1e5631;
 }
 
 /* LINK */
@@ -62,57 +62,46 @@
 }
 
 .footer-links li {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .footer-links li a {
   text-decoration: none;
-  color: #374151;
-  transition: all 0.25s ease;
+  color: #5f6368;
+  transition: color 0.2s ease;
 }
 
 .footer-links li a:hover {
-  color: #2e7d32;
-  padding-left: 6px;
+  color: #2f7d32;
 }
 
 /* CONTACT */
 .footer-contact p {
   display: flex;
   align-items: center;
-  margin-bottom: 12px;
-  color: #374151;
+  margin-bottom: 10px;
+  color: #5f6368;
 }
 
 .footer-contact svg {
   margin-right: 10px;
   font-size: 16px;
-  color: #2e7d32;
+  color: #2f7d32;
 }
 
 /* LINE */
 .footer-line {
-  margin: 36px 0 0;
+  margin: 40px 0 0;
   border: none;
+  border-top: 1px solid #e4e6e8;
 }
 
-/* ===== FOOTER BOTTOM (NỀN ĐẬM) ===== */
+/* FOOTER BOTTOM */
 .footer-bottom {
-  background-color: #1b5e20;
-  color: #e8f5e9;
+  background-color: #ffffff;
+  color: #5f6368;
   text-align: center;
-  padding: 14px 10px;
+  padding: 16px 10px;
   font-size: 14px;
-  margin-top: 40px;
-}
-
-/* ===== MOBILE ===== */
-@media (max-width: 768px) {
-  .site-footer {
-    padding-top: 48px;
-  }
-
-  .footer-logo {
-    font-size: 23px;
-  }
+  border-top: 1px solid #e4e6e8;
 }
