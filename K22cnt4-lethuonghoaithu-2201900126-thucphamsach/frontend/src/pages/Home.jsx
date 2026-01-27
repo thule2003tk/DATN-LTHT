@@ -1,46 +1,47 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Carousel from "react-multi-carousel";
 import "react-multi-carousel/lib/styles.css";
-import Header from "../components/Header";
-import { Container, Row, Col, Card, Button } from "react-bootstrap";
 import {
-  FaLeaf, FaTruck, FaShieldAlt, FaClock,
-  FaShoppingCart
+  Container, Row, Col, Card, Badge
+} from "react-bootstrap";
+import {
+  FaLeaf, FaTruck, FaShieldAlt, FaClock
 } from "react-icons/fa";
 
+import Header from "../components/Header";
+import Footer from "../components/Footer";
 import { getAllSanPham } from "../api/sanpham";
 import { getBlogsByCategory } from "../api/blog";
 import { useAuth } from "../context/AuthContext";
-import { useCart } from "../context/CartContext";
 
-/* ================= SLIDER CONFIG ================= */
+/* ================= CONFIG ================= */
 const bannerResponsive = {
   desktop: { breakpoint: { max: 3000, min: 1024 }, items: 1 },
   tablet: { breakpoint: { max: 1024, min: 464 }, items: 1 },
   mobile: { breakpoint: { max: 464, min: 0 }, items: 1 },
 };
 
-const productResponsive = {
-  desktop: { breakpoint: { max: 3000, min: 1024 }, items: 4 },
-  tablet: { breakpoint: { max: 1024, min: 464 }, items: 2 },
-  mobile: { breakpoint: { max: 464, min: 0 }, items: 1 },
-};
+const CATEGORIES = [
+  "Rau Củ Quả",
+  "Hoa Quả Tươi",
+  "Thịt Sạch",
+  "Hải Sản",
+  "Đồ Khô",
+  "Thực Phẩm Theo Mùa",
+  "Super Sale",
+];
 
 export default function Home() {
   const [products, setProducts] = useState([]);
   const [blogs, setBlogs] = useState({ monan: [], rausach: [], suckhoe: [] });
-  const [activeTab, setActiveTab] = useState("monan");
-  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const { user } = useAuth();
-  const { addToCart } = useCart();
   const navigate = useNavigate();
 
   /* ================= LOAD DATA ================= */
   useEffect(() => {
-    const loadData = async () => {
+    const load = async () => {
       try {
         const [sp, monan, rausach, suckhoe] = await Promise.all([
           getAllSanPham(),
@@ -49,129 +50,153 @@ export default function Home() {
           getBlogsByCategory("suckhoe"),
         ]);
         setProducts(sp || []);
-        setBlogs({ monan, rausach, suckhoe });
+        setBlogs({
+          monan: monan?.slice(0, 4) || [],
+          rausach: rausach?.slice(0, 4) || [],
+          suckhoe: suckhoe?.slice(0, 4) || [],
+        });
+      } catch (error) {
+        console.error("Lỗi tải dữ liệu:", error);
       } finally {
         setLoading(false);
       }
     };
-    loadData();
+    load();
   }, []);
-
-  /* ================= DATA ================= */
-  const categories = [
-    { title: "Rau Củ Quả", query: "rau-cu" },
-    { title: "Đồ Khô", query: "do-kho" },
-    { title: "Sản Phẩm Tươi Sống", query: "tuoi-song" },
-    { title: "Dược Liệu", query: "duoc-lieu" },
-    { title: "Hạt Giống", query: "hat-giong" },
-    { title: "Thực Phẩm Chế Biến", query: "che-bien" },
-  ];
-
-  const banners = [
-    "https://img.pikbest.com/templates/20240706/fruit-fruit-banner-for-supermarket-store-green-background_10654794.jpg!bw700",
-    "https://file.hstatic.net/200000271661/article/untitled-5-recovered_7b4bb62c75a5459e8b4ddd83ebbcc7df_grande.png",
-  ];
 
   const img = (p) =>
     p.hinhanh?.startsWith("http")
       ? p.hinhanh
       : `http://localhost:3001/uploads/${p.hinhanh}`;
 
-  /* ================= PHÂN LOẠI ================= */
-  const saleProducts = products.slice(0, 6);
-  const featuredProducts = products.slice(6, 14);
+  /* ================= PRODUCT LOGIC ================= */
+  const featured = useMemo(() => products.slice(0, 10), [products]);
+  const newest = useMemo(() => [...products].reverse().slice(0, 10), [products]);
+  const allProducts = products;
 
   if (loading) {
-    return <div className="text-center my-5 text-success fw-bold">Đang tải dữ liệu…</div>;
+    return (
+      <div className="text-center my-5 text-success fw-bold fs-4">
+        Đang tải dữ liệu...
+      </div>
+    );
   }
 
   return (
     <>
-      <Header categories={categories} searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+      <Header />
 
       {/* ================= SIDEBAR + BANNER ================= */}
-      <Container className="mt-4">
-        <div className="home-top">
-          <aside className="sidebar">
-            <div className="sidebar-title">☰ Chuyên mục</div>
-            <ul>
-              {categories.map((c, i) => (
-                <li key={i}>
-                  <Link to={`/products?category=${c.query}`}>{c.title}</Link>
-                  <span>›</span>
-                </li>
-              ))}
-            </ul>
-          </aside>
+      <Container fluid className="mt-3">
+        <Row className="gx-3">
+          {/* ===== SIDEBAR ===== */}
+          <Col lg={3} className="d-none d-lg-block">
+            <div className="category-box">
+              <div className="category-title">☰ DANH MỤC</div>
+              <ul className="category-list">
+                {CATEGORIES.map((c, i) => (
+                  <li key={i}>
+                    <Link to="/products">{c}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </Col>
 
-          <div className="banner">
-            <Carousel responsive={bannerResponsive} autoPlay infinite showDots arrows={false}>
-              {banners.map((b, i) => (
-                <img key={i} src={b} alt="" />
+          {/* ===== BANNER ===== */}
+          <Col lg={6}>
+            <Carousel responsive={bannerResponsive} autoPlay infinite showDots>
+              {["/images/banner1.jpg", "/images/banner2.jpg"].map((b, i) => (
+                <div key={i} className="banner-wrap">
+                  <img src={b} className="main-banner-img" alt="banner" />
+                  <div className="banner-content">
+                    <h2>THỰC PHẨM SẠCH</h2>
+                    <p>Giảm đến 20% hôm nay</p>
+                    <button className="btn btn-danger">Mua ngay</button>
+                  </div>
+                </div>
               ))}
             </Carousel>
-          </div>
-        </div>
+          </Col>
+
+          {/* ===== BANNER PHỤ ===== */}
+          <Col lg={3} className="d-none d-lg-flex flex-column gap-3">
+            <img src="/images/banner-small1.jpg" className="sub-banner" alt="sub-banner1" />
+            <img src="/images/banner-small2.jpg" className="sub-banner" alt="sub-banner2" />
+          </Col>
+        </Row>
       </Container>
 
       {/* ================= LỢI ÍCH ================= */}
-      <Container className="my-5 bg-light rounded-4 py-4">
+      <Container className="my-5 bg-light rounded-4 py-4 shadow-sm">
         <Row className="text-center">
-          {[FaLeaf, FaTruck, FaShieldAlt, FaClock].map((Icon, i) => (
+          {[
+            { icon: FaLeaf, text: "Hữu Cơ" },
+            { icon: FaTruck, text: "Giao Nhanh" },
+            { icon: FaShieldAlt, text: "VietGAP" },
+            { icon: FaClock, text: "Tươi Mỗi Ngày" },
+          ].map((item, i) => (
             <Col md={3} key={i}>
-              <Icon size={48} className="text-success mb-2" />
-              <h6 className="fw-bold">
-                {["100% Hữu Cơ", "Giao Nhanh", "VietGAP", "Tươi Mỗi Ngày"][i]}
-              </h6>
+              <item.icon size={42} className="text-success mb-2" />
+              <h6 className="fw-bold">{item.text}</h6>
             </Col>
           ))}
         </Row>
       </Container>
 
-      {/* ================= KHUYẾN MÃI ================= */}
-      <Container className="my-5">
-        <h4 className="fw-bold text-success mb-3">🔥 SẢN PHẨM KHUYẾN MÃI</h4>
-        <Carousel responsive={productResponsive}>
-          {saleProducts.map(p => (
-            <Card key={p.ma_sp} className="product-card mx-2">
-              <div className="sale-badge">-20%</div>
-              <img src={img(p)} />
-              <Card.Body>
-                <h6>{p.ten_sp}</h6>
-                <p className="price-old">{Number(p.gia).toLocaleString()}₫</p>
-                <p className="price-new">
-                  {(p.gia * 0.8).toLocaleString()}₫
-                </p>
-                <Button
-                  variant="success"
-                  onClick={() => (!user ? navigate("/login") : addToCart(p))}
+      {/* ================= BLOCK PRODUCT ================= */}
+      {[
+        { title: "⭐ SẢN PHẨM NỔI BẬT", data: featured },
+        { title: "🆕 SẢN PHẨM MỚI", data: newest },
+      ].map((block, idx) => (
+        <Container className="my-5" key={idx}>
+          <h4 className="fw-bold text-success mb-4">{block.title}</h4>
+          <Row className="g-4">
+            {block.data.map((p) => (
+              <Col lg={2} md={3} sm={4} xs={6} key={p.ma_sp}>
+                <Card
+                  className="product-card h-100 border-0 shadow-sm"
+                  onClick={() => navigate(`/product/${p.ma_sp}`)}
+                  style={{ cursor: "pointer" }}
                 >
-                  <FaShoppingCart /> Mua ngay
-                </Button>
-              </Card.Body>
-            </Card>
-          ))}
-        </Carousel>
-      </Container>
+                  <div className="product-img position-relative">
+                    <img src={img(p)} alt={p.ten_sp} className="card-img-top" />
+                    <Badge bg="danger" className="sale-badge position-absolute top-0 start-0 m-2">
+                      Giảm
+                    </Badge>
+                  </div>
+                  <Card.Body className="d-flex flex-column">
+                    <h6 className="product-name mb-2 flex-grow-1">{p.ten_sp}</h6>
+                    <div className="price text-success fw-bold">
+                      {Number(p.gia).toLocaleString()}₫
+                    </div>
+                  </Card.Body>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        </Container>
+      ))}
 
-      {/* ================= SẢN PHẨM NỔI BẬT ================= */}
+      {/* ================= TẤT CẢ SẢN PHẨM ================= */}
       <Container className="my-5">
-        <h4 className="fw-bold text-success mb-3">⭐ SẢN PHẨM NỔI BẬT</h4>
+        <h4 className="fw-bold text-success mb-4">📦 TẤT CẢ SẢN PHẨM</h4>
         <Row className="g-4">
-          {featuredProducts.map(p => (
-            <Col md={3} key={p.ma_sp}>
-              <Card className="product-card">
-                <img src={img(p)} />
-                <Card.Body>
-                  <h6>{p.ten_sp}</h6>
-                  <p className="price-new">{Number(p.gia).toLocaleString()}₫</p>
-                  <Button
-                    variant="outline-success"
-                    className="w-100"
-                    onClick={() => (!user ? navigate("/login") : addToCart(p))}
-                  >
-                    <FaShoppingCart /> Thêm vào giỏ
-                  </Button>
+          {allProducts.map((p) => (
+            <Col lg={2} md={3} sm={4} xs={6} key={p.ma_sp}>
+              <Card
+                className="product-card h-100 border-0 shadow-sm"
+                onClick={() => navigate(`/product/${p.ma_sp}`)}
+                style={{ cursor: "pointer" }}
+              >
+                <div className="product-img position-relative">
+                  <img src={img(p)} alt={p.ten_sp} className="card-img-top" />
+                </div>
+                <Card.Body className="d-flex flex-column">
+                  <h6 className="product-name mb-2 flex-grow-1">{p.ten_sp}</h6>
+                  <div className="price text-success fw-bold">
+                    {Number(p.gia).toLocaleString()}₫
+                  </div>
                 </Card.Body>
               </Card>
             </Col>
@@ -179,65 +204,102 @@ export default function Home() {
         </Row>
       </Container>
 
-      {/* ================= AN TOÀN THỰC PHẨM ================= */}
-      <Container className="my-5 bg-light rounded-4 py-5">
-        <h3 className="text-center fw-bold text-success mb-4">AN TOÀN THỰC PHẨM</h3>
-        <div className="text-center mb-4">
-          {["monan", "rausach", "suckhoe"].map(t => (
-            <Button
-              key={t}
-              variant={activeTab === t ? "success" : "outline-success"}
-              className="mx-2"
-              onClick={() => setActiveTab(t)}
-            >
-              {t === "monan" ? "MÓN ĂN" : t === "rausach" ? "RAU SẠCH" : "SỨC KHỎE"}
-            </Button>
-          ))}
-        </div>
-
-        <Row className="g-4">
-          {blogs[activeTab].map(b => (
-            <Col md={3} key={b.id}>
-              <Link to={`/blog/${b.id}`} className="text-decoration-none">
-                <Card className="blog-card text-center">
-                  <img src={b.img} />
-                  <Card.Body>
-                    <h6>{b.title}</h6>
-                    <p className="small text-muted">{b.desc1}</p>
-                  </Card.Body>
-                </Card>
-              </Link>
-            </Col>
-          ))}
-        </Row>
-      </Container>
+      <Footer />
 
       {/* ================= CSS ================= */}
       <style>{`
-        .home-top{display:grid;grid-template-columns:260px 1fr;gap:18px}
-        .sidebar{background:#fff;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
-        .sidebar-title{background:#2e7d32;color:#fff;padding:14px;font-weight:700}
-        .sidebar li{display:flex;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #eee;transition:.3s}
-        .sidebar li:hover{background:#f4fbf6;padding-left:24px}
-        .banner{border-radius:18px;overflow:hidden;box-shadow:0 12px 32px rgba(0,0,0,.15)}
-        .banner img{width:100%;height:420px;object-fit:cover}
+        body { background: #f8f9fa; }
+        .category-box {
+          background: #fff;
+          border-radius: 12px;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+          overflow: hidden;
+        }
+        .category-title {
+          background: #28a745;
+          color: white;
+          padding: 14px 16px;
+          font-weight: 700;
+          font-size: 1.1rem;
+        }
+        .category-list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+        }
+        .category-list li {
+          padding: 12px 16px;
+          border-bottom: 1px solid #eee;
+          transition: all 0.2s;
+        }
+        .category-list li:hover {
+          background: #e8f5e9;
+          color: #28a745;
+        }
+        .category-list a {
+          text-decoration: none;
+          color: #333;
+          font-size: 0.95rem;
+        }
 
-        .product-card{border:none;border-radius:18px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.12);transition:.35s}
-        .product-card:hover{transform:translateY(-10px)}
-        .product-card img{height:220px;object-fit:cover}
+        .banner-wrap { position: relative; }
+        .main-banner-img {
+          width: 100%;
+          height: 420px;
+          object-fit: cover;
+          border-radius: 12px;
+        }
+        .banner-content {
+          position: absolute;
+          top: 50%;
+          left: 10%;
+          transform: translateY(-50%);
+          color: white;
+          text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+        }
+        .sub-banner {
+          width: 100%;
+          height: 200px;
+          object-fit: cover;
+          border-radius: 12px;
+        }
 
-        .sale-badge{position:absolute;top:12px;left:12px;background:#e53935;color:#fff;padding:6px 12px;border-radius:999px}
-        .price-old{text-decoration:line-through;color:#999}
-        .price-new{color:#2e7d32;font-weight:800}
-
-        .blog-card{border:none;border-radius:18px;box-shadow:0 10px 25px rgba(0,0,0,.12);transition:.35s}
-        .blog-card:hover{transform:translateY(-8px)}
-        .blog-card img{width:140px;height:140px;border-radius:50%;margin:20px auto 0;border:4px solid #2e7d32}
-
-        @media(max-width:992px){
-          .home-top{grid-template-columns:1fr}
-          .sidebar{display:none}
-          .banner img{height:260px}
+        .product-card {
+          border-radius: 12px;
+          overflow: hidden;
+          transition: all 0.3s ease;
+          background: white;
+        }
+        .product-card:hover {
+          transform: translateY(-8px);
+          box-shadow: 0 12px 24px rgba(0,0,0,0.15) !important;
+        }
+        .product-img {
+          height: 180px;
+          overflow: hidden;
+        }
+        .product-img img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transition: transform 0.4s ease;
+        }
+        .product-card:hover .product-img img {
+          transform: scale(1.08);
+        }
+        .sale-badge {
+          font-size: 0.8rem;
+          padding: 4px 10px;
+        }
+        .product-name {
+          font-size: 0.95rem;
+          line-height: 1.4;
+          color: #333;
+          font-weight: 600;
+        }
+        .price {
+          font-size: 1.1rem;
+          font-weight: 800;
         }
       `}</style>
     </>

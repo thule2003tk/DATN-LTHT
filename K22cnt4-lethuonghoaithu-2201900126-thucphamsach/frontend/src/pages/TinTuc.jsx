@@ -177,14 +177,8 @@ function TinTuc() {
       </Container>
 
       {/* Footer giống Home */}
-      <footer className="bg-success text-white py-5 mt-5">
-        <Container>
-          {/* ... (giữ nguyên footer từ Home) */}
-          <div className="text-center small">
-            © 2026 Thực Phẩm Sạch. All rights reserved.
-          </div>
-        </Container>
-      </footer>
+      {/* <Footer></Footer> */}
+      <Footer></Footer>
     </>
   );
 }

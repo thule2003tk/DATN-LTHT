@@ -5,21 +5,28 @@ const path = require("path");
 
 const app = express();
 
-// 🟢 CORS – đặt đầu tiên
-app.use(cors({
-  origin: "http://localhost:5173",
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true
-}));
+/* ================= CORS ================= */
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
 
-// 🟢 Body Parser
+/* ================= BODY PARSER ================= */
 app.use(express.json());
 
-// 🟢 Static for uploads
+/* ================= STATIC UPLOADS ================= */
+/*
+  📌 RẤT QUAN TRỌNG
+  - Multer lưu ảnh vào thư mục: uploads/
+  - Express phải trỏ đúng uploads/
+*/
 app.use("/uploads", express.static(path.join(__dirname, "src/uploads")));
 
-// 🟢 Import routes
+/* ================= ROUTES ================= */
 app.use("/api/blog", require("./src/routes/blog"));
 app.use("/api/auth", require("./src/routes/auth"));
 app.use("/api/sanpham", require("./src/routes/sanpham"));
@@ -29,9 +36,15 @@ app.use("/api/donhang", require("./src/routes/donhang"));
 app.use("/api/lienhe", require("./src/routes/lienhe"));
 app.use("/api/admin/users", require("./src/routes/admin.users"));
 app.use("/api/khachhang", require("./src/routes/khachhang"));
-// 🟢 Test endpoint
+app.use("/api/donvisanpham", require("./src/routes/donvisanpham"));
+
+/* ================= TEST ROOT ================= */
 app.get("/", (req, res) => {
   res.send("🚀 Backend đang chạy!");
 });
+
+/* ================= START SERVER ================= */
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`🚀 Server chạy tại http://localhost:${PORT}`));
+app.listen(PORT, () =>
+  console.log(`🚀 Server chạy tại http://localhost:${PORT}`)
+);

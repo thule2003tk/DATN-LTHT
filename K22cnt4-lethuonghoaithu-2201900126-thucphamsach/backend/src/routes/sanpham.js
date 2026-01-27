@@ -2,14 +2,19 @@ const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const path = require("path");
-const db = require("../config/db.js"); // ← ĐÚNG 100% CHO CẤU TRÚC CỦA BẠN
 const { verifyToken, checkAdmin } = require("../middlewares/auth");
 const sanphamController = require("../controllers/sanphamController");
+
+/* ================= DEBUG (DEV ONLY) ================= */
+router.use((req, res, next) => {
+  console.log("🔥 SANPHAM ROUTE HIT:", req.method, req.originalUrl);
+  next();
+});
 
 /* ================= MULTER CONFIG ================= */
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/"); // ⚠️ QUAN TRỌNG: KHÔNG phải src/uploads
+    cb(null, "uploads/"); // phải trùng server.js
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
@@ -18,24 +23,33 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith("image/")) {
-    cb(null, true);
-  } else {
-    cb(new Error("Chỉ cho phép upload file ảnh"), false);
-  }
+  if (file.mimetype.startsWith("image/")) cb(null, true);
+  else cb(new Error("Chỉ cho phép upload ảnh"), false);
 };
 
 const upload = multer({ storage, fileFilter });
 
 /* ================= ROUTES ================= */
+/* ========= PUBLIC ========= */
 
-// Lấy danh sách sản phẩm (PUBLIC)
+// Test router
+router.get("/test", (req, res) => {
+  res.json({ ok: true });
+});
+
+// Danh sách sản phẩm
 router.get("/", sanphamController.getAllSanPham);
 
-// Lấy chi tiết sản phẩm theo mã (PUBLIC)
+// 🔥 Đơn vị + giá theo sản phẩm
+// GET /api/sanpham/SP021/donvi
+router.get("/:ma_sp/donvi", sanphamController.getDonViTheoSanPham);
+
+// Chi tiết sản phẩm
 router.get("/:ma_sp", sanphamController.getSanPhamByMa);
 
-// Thêm sản phẩm (ADMIN)
+/* ========= ADMIN ========= */
+
+// Thêm sản phẩm
 router.post(
   "/",
   verifyToken,
@@ -44,7 +58,7 @@ router.post(
   sanphamController.createSanPham
 );
 
-// Cập nhật sản phẩm (ADMIN)
+// Cập nhật sản phẩm
 router.put(
   "/:ma_sp",
   verifyToken,
@@ -53,7 +67,7 @@ router.put(
   sanphamController.updateSanPham
 );
 
-// Xóa sản phẩm (ADMIN)
+// Xóa sản phẩm
 router.delete(
   "/:ma_sp",
   verifyToken,
