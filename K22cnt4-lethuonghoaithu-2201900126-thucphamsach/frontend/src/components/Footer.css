@@ -1,57 +1,58 @@
-/* ===== FOOTER - THỰC PHẨM SẠCH (CÂN BẰNG) ===== */
+/* ===== FOOTER XANH LÁ - HOÀN THIỆN ===== */
 .site-footer {
-  background-color: #fafaf7; /* NỀN TRẮNG NGÀ */
-  padding: 60px 0 0;
+  width: 100%;
+  background-color: #1f6b3a;
+  padding: 64px 0 0;
   font-size: 15px;
-  color: #2b2b2b;
-  border-top: 1px solid #e4e6e8;
+  color: #e8f5e9;
 }
 
 /* LOGO */
 .footer-logo {
   font-size: 26px;
   font-weight: 700;
-  color: #2f7d32;
+  color: #ffffff;
   margin-bottom: 14px;
 }
 
 /* MÔ TẢ */
 .footer-desc {
-  color: #5f6368;
+  color: #d7efe1;
   line-height: 1.75;
   max-width: 360px;
 }
 
-/* SOCIAL ICON */
+/* SOCIAL */
 .footer-social {
-  margin-top: 18px;
+  margin-top: 20px;
 }
 
 .footer-social a {
-  width: 40px;
-  height: 40px;
-  background-color: #eef3ee;
-  color: #2f7d32;
+  width: 42px;
+  height: 42px;
+  background-color: #2f8f4e;
+  color: #ffffff;
   border-radius: 50%;
-  margin-right: 10px;
-  font-size: 17px;
+  margin-right: 12px;
+  font-size: 18px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.25s ease;
+  transition: 0.25s;
 }
 
 .footer-social a:hover {
-  background-color: #2f7d32;
-  color: #ffffff;
+  background-color: #ffffff;
+  color: #1f6b3a;
+  transform: translateY(-3px);
 }
 
 /* TIÊU ĐỀ */
 .footer-title {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
-  margin-bottom: 16px;
-  color: #1e5631;
+  margin-bottom: 18px;
+  color: #ffffff;
 }
 
 /* LINK */
@@ -62,46 +63,55 @@
 }
 
 .footer-links li {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .footer-links li a {
   text-decoration: none;
-  color: #5f6368;
-  transition: color 0.2s ease;
+  color: #d7efe1;
 }
 
 .footer-links li a:hover {
-  color: #2f7d32;
+  color: #ffffff;
+  padding-left: 6px;
 }
 
 /* CONTACT */
 .footer-contact p {
   display: flex;
   align-items: center;
-  margin-bottom: 10px;
-  color: #5f6368;
+  margin-bottom: 12px;
+  color: #d7efe1;
 }
 
 .footer-contact svg {
   margin-right: 10px;
   font-size: 16px;
-  color: #2f7d32;
+  color: #a7e3b5;
 }
 
-/* LINE */
-.footer-line {
-  margin: 40px 0 0;
-  border: none;
-  border-top: 1px solid #e4e6e8;
-}
-
-/* FOOTER BOTTOM */
+/* ===== FOOTER BOTTOM FULL ===== */
 .footer-bottom {
-  background-color: #ffffff;
-  color: #5f6368;
+  width: 100%;
+  background-color: #16552e;
+  color: #e8f5e9;
   text-align: center;
-  padding: 16px 10px;
+  padding: 16px 12px;
   font-size: 14px;
-  border-top: 1px solid #e4e6e8;
+  margin-top: 48px;
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+  .site-footer {
+    padding-top: 48px;
+  }
+
+  .footer-logo {
+    font-size: 23px;
+  }
+
+  .footer-bottom {
+    font-size: 13px;
+  }
 }

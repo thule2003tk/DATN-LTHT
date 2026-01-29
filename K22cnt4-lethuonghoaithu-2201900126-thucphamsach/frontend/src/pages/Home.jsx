@@ -31,13 +31,46 @@ const CATEGORIES = [
   "Thực Phẩm Theo Mùa",
   "Super Sale",
 ];
-
 export default function Home() {
+  /* ================= STATE ================= */
+  const [activeTab, setActiveTab] = useState("monan"); // ✅ ĐÚNG VỊ TRÍ
   const [products, setProducts] = useState([]);
-  const [blogs, setBlogs] = useState({ monan: [], rausach: [], suckhoe: [] });
+  const [blogs, setBlogs] = useState({
+    monan: [],
+    rausach: [],
+    suckhoe: [],
+  });
   const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
+
+  /* ================= LOAD DATA ================= */
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [sp, monan, rausach, suckhoe] = await Promise.all([
+          getAllSanPham(),
+          getBlogsByCategory("monan"),
+          getBlogsByCategory("rausach"),
+          getBlogsByCategory("suckhoe"),
+        ]);
+
+        setProducts(sp || []);
+        setBlogs({
+          monan: monan?.slice(0, 4) || [],
+          rausach: rausach?.slice(0, 4) || [],
+          suckhoe: suckhoe?.slice(0, 4) || [],
+        });
+      } catch (error) {
+        console.error("Lỗi tải dữ liệu:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+
 
   /* ================= LOAD DATA ================= */
   useEffect(() => {
@@ -120,10 +153,12 @@ export default function Home() {
           </Col>
 
           {/* ===== BANNER PHỤ ===== */}
-          <Col lg={3} className="d-none d-lg-flex flex-column gap-3">
-            <img src="/images/banner-small1.jpg" className="sub-banner" alt="sub-banner1" />
-            <img src="/images/banner-small2.jpg" className="sub-banner" alt="sub-banner2" />
-          </Col>
+          {/* ===== BANNER PHỤ ===== */}
+<Col lg={3} className="d-none d-lg-flex flex-column gap-3">
+  <img src="/images/banner2.jpg" className="sub-banner" alt="Banner phụ 1" />
+  <img src="/images/banner3.jpg" className="sub-banner" alt="Banner phụ 2" />
+</Col>
+
         </Row>
       </Container>
 
@@ -203,6 +238,59 @@ export default function Home() {
           ))}
         </Row>
       </Container>
+          {/* ================= BLOG SECTION ================= */}
+<Container className="my-5">
+  <div className="bg-white rounded-4 shadow-sm p-4">
+    <h3 className="text-center fw-bold text-success mb-4">
+      AN TOÀN THÔNG TIN THỰC PHẨM
+    </h3>
+
+    {/* ===== TABS ===== */}
+    <div className="d-flex justify-content-center gap-3 mb-4">
+      {["monan", "rausach", "suckhoe"].map((key, idx) => (
+        <button
+          key={key}
+          className={`btn ${
+            activeTab === key ? "btn-success" : "btn-outline-success"
+          } rounded-pill px-4`}
+          onClick={() => setActiveTab(key)}
+        >
+          {key === "monan" && "MÓN ĂN"}
+          {key === "rausach" && "RAU SẠCH"}
+          {key === "suckhoe" && "SỨC KHỎE"}
+        </button>
+      ))}
+    </div>
+
+    {/* ===== CONTENT ===== */}
+    <Row className="g-4">
+      {blogs[activeTab]?.length > 0 ? (
+        blogs[activeTab].map((b) => (
+          <Col md={3} sm={6} xs={12} key={b.id}>
+            <Card
+              className="h-100 border-0 shadow-sm blog-card"
+              onClick={() => navigate(`/blog/${b.id}`)}
+              style={{ cursor: "pointer" }}
+            >
+              <div className="blog-img">
+                <img src={b.img} alt={b.title} />
+              </div>
+              <Card.Body>
+                <h6 className="fw-bold">{b.title}</h6>
+                <p className="text-muted small mb-1">{b.desc1}</p>
+                <p className="text-muted small">{b.desc2}</p>
+              </Card.Body>
+            </Card>
+          </Col>
+        ))
+      ) : (
+        <div className="text-center text-muted py-4">
+          Chưa có bài viết nào trong mục này.
+        </div>
+      )}
+    </Row>
+  </div>
+</Container>
 
       <Footer />
 
@@ -301,6 +389,28 @@ export default function Home() {
           font-size: 1.1rem;
           font-weight: 800;
         }
+          .blog-card {
+  transition: all 0.3s ease;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.blog-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+}
+
+.blog-img {
+  height: 160px;
+  overflow: hidden;
+}
+
+.blog-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
       `}</style>
     </>
   );

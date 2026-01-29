@@ -25,9 +25,24 @@ function AdminLayout() {
                 📊 Tổng quan
               </Link>
             </li>
+               <li className="border-top border-light mt-4 pt-3 mb-2">
+              <Link to="/admin/danhmuc" className="nav-link text-white py-2">
+                📁 Danh mục
+              </Link>
+            </li>
             <li className="border-top border-light mt-4 pt-3 mb-2">
               <Link to="/admin/products" className="nav-link text-white py-2">
                 🥬 Sản phẩm
+              </Link>
+            </li>
+             <li className="border-top border-light mt-4 pt-3 mb-2">
+              <Link to="/admin/donvisanpham" className="nav-link text-white py-2">
+                ⚖️ Đơn vị sản phẩm
+              </Link>
+            </li>
+            <li className="border-top border-light mt-4 pt-3 mb-2">
+              <Link to="/admin/donvitinh" className="nav-link text-white py-2">
+                ⚖️ Đơn vị
               </Link>
             </li>
             <li className="border-top border-light mt-4 pt-3 mb-2">

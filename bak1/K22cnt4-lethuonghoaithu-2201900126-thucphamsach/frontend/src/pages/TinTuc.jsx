@@ -1,45 +1,16 @@
 import React from "react";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
 import { Container, Row, Col, Card } from "react-bootstrap";
 import { Link } from "react-router-dom";
+import { categories } from "../data/categories.js";
 
 function TinTuc() {
+
+
   return (
     <>
-      {/* Giữ nguyên header và nav như trang Home để đồng bộ */}
-      {/* Header trắng */}
-      <header className="bg-white shadow-sm py-3 sticky-top">
-        <Container>
-          <div className="d-flex justify-content-between align-items-center">
-            <Link to="/" className="fw-bold text-success fs-3 text-decoration-none">
-              Thực Phẩm Sạch
-            </Link>
-
-            <form className="d-flex mx-auto" style={{ maxWidth: "500px" }}>
-              <input
-                className="form-control me-2"
-                type="search"
-                placeholder="Tìm kiếm sản phẩm..."
-                aria-label="Search"
-              />
-              <button className="btn btn-success" type="submit">
-                Tìm
-              </button>
-            </form>
-
-            <div className="d-flex align-items-center gap-3">
-              <Link to="/login" className="text-dark text-decoration-none">
-                Đăng Nhập
-              </Link>
-              <Link to="/register" className="btn btn-outline-success">
-                Đăng Ký
-              </Link>
-              <Link to="/cart" className="position-relative text-dark">
-                Giỏ Hàng
-              </Link>
-            </div>
-          </div>
-        </Container>
-      </header>
+      <Header categories={categories} />
 
       {/* Thanh navigation xanh lá */}
       <nav className="bg-success py-3">
@@ -178,15 +149,7 @@ function TinTuc() {
         </Row>
       </Container>
 
-      {/* Footer giống Home */}
-      <footer className="bg-success text-white py-5 mt-5">
-        <Container>
-          {/* ... (giữ nguyên footer từ Home) */}
-          <div className="text-center small">
-            © 2026 Thực Phẩm Sạch. All rights reserved.
-          </div>
-        </Container>
-      </footer>
+      <Footer />
     </>
   );
 }

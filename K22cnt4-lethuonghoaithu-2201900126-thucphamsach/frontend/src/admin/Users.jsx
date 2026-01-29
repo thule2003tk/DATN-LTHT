@@ -57,13 +57,13 @@ function Users() {
                 {user.vai_tro === "admin" && u.vai_tro === "customer" && (
                   <Button
                     size="sm"
-                    onClick={() => handleRoleChange(u.ma_nguoidung, "member")}
+                    onClick={() => handleRoleChange(u.ma_nguoidung, "staff")}
                   >
-                    Duyệt Member
+                    Duyệt Staff
                   </Button>
                 )}
 
-                {user.vai_tro === "admin" && u.vai_tro === "member" && (
+                {user.vai_tro === "admin" && u.vai_tro === "staff" && (
                   <Button
                     size="sm"
                     variant="warning"

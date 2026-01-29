@@ -1,0 +1,66 @@
+/* ===== SIDEBAR DANH MỤC ===== */
+.category-box {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+
+.category-title {
+  background: linear-gradient(135deg, #1f6b3a, #2f8f4e);
+  color: #fff;
+  padding: 14px 18px;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.5px;
+}
+
+.category-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.category-list li {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.category-list li:last-child {
+  border-bottom: none;
+}
+
+.category-list a {
+  display: block;
+  padding: 12px 18px;
+  color: #333;
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: all 0.25s ease;
+}
+
+.category-list a:hover {
+  background: #e8f5e9;
+  color: #1f6b3a;
+  padding-left: 26px;
+  font-weight: 600;
+}
+/* ===== DROPDOWN MENU ===== */
+.navbar .dropdown-menu {
+  border-radius: 10px;
+  border: none;
+  padding: 10px 0;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+}
+
+.navbar .dropdown-item {
+  font-size: 0.95rem;
+  padding: 10px 20px;
+  transition: all 0.2s ease;
+}
+
+.navbar .dropdown-item:hover {
+  background-color: #e8f5e9;
+  color: #1f6b3a;
+  padding-left: 26px;
+  font-weight: 600;
+}

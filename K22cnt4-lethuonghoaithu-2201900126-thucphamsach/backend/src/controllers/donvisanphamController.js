@@ -31,6 +31,22 @@ exports.getDonViSanPhamByMa = (req, res) => {
     });
 };
 
+// LẤY ĐƠN VỊ SẢN PHẨM THEO MÃ SẢN PHẨM
+// ===============================
+exports.getDonViSanPhamByMaSP = (req, res) => {
+    const sql = "SELECT dvsp.gia,dvsp.ma_donvisp, dvsp.ma_dvt,dvsp.ma_sp,dv.mota, dv.size, dv.trangthai, dv.ten_dvt FROM donvisanpham dvsp INNER JOIN donvitinh dv ON dv.ma_dvt = dvsp.ma_dvt WHERE dvsp.ma_sp = ?";
+    db.query(sql, [req.params.ma_sp], (err, results) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: "Lỗi server" });
+        }
+        if (results.length === 0) {
+            return res.status(404).json({ error: "Không tìm thấy đơn vị sản phẩm" });
+        }
+        res.json(results);
+    });
+};
+
 // ===============================
 // TẠO ĐƠN VỊ SẢN PHẨM
 // ===============================

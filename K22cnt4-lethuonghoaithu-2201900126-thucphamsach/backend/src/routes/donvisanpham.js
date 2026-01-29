@@ -8,6 +8,9 @@ router.get("/", donvisanphamController.getAllDonViSanPham);
 // Lấy đơn vị sản phẩm theo mã
 router.get("/:ma_donvisp", donvisanphamController.getDonViSanPhamByMa);
 
+// Lấy đơn vị sản phẩm theo mã san pham
+router.get("/sanpham/:ma_sp", donvisanphamController.getDonViSanPhamByMaSP);
+
 // Tạo đơn vị sản phẩm mới
 router.post("/", donvisanphamController.createDonViSanPham);
 

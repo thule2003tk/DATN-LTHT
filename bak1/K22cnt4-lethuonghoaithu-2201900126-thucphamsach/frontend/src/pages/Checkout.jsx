@@ -4,6 +4,9 @@ import { Container, Button, Table, Alert, Spinner, Form } from "react-bootstrap"
 import { FaHome, FaShoppingCart } from "react-icons/fa";
 import { useCart } from "../context/CartContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
+import { categories } from "../data/categories.js";
 
 // API tạo đơn hàng (giữ nguyên)
 const createOrder = async (orderData, token = null) => {
@@ -174,113 +177,117 @@ function Checkout() {
   };
 
   return (
-    <Container className="my-5 py-5">
-      <h1 className="text-center mb-5 text-success fw-bold">Thanh Toán Đơn Hàng</h1>
+    <>
+      <Header categories={categories} />
+      <Container className="my-5 py-5">
+        <h1 className="text-center mb-5 text-success fw-bold">Thanh Toán Đơn Hàng</h1>
 
-      {error && (
-        <Alert variant="danger" dismissible onClose={() => setError("")}>
-          {error}
-        </Alert>
-      )}
+        {error && (
+          <Alert variant="danger" dismissible onClose={() => setError("")}>
+            {error}
+          </Alert>
+        )}
 
-      {success && (
-        <Alert variant="success" dismissible onClose={() => setSuccess("")}>
-          {success}
-        </Alert>
-      )}
+        {success && (
+          <Alert variant="success" dismissible onClose={() => setSuccess("")}>
+            {success}
+          </Alert>
+        )}
 
-      <Table striped bordered hover responsive className="table-success shadow-sm">
-        <thead className="table-dark">
-          <tr>
-            <th>Sản phẩm</th>
-            <th>Giá</th>
-            <th>Số lượng</th>
-            <th>Thành tiền</th>
-          </tr>
-        </thead>
-        <tbody>
-          {cart.map((item) => (
-            <tr key={item.ma_sp}>
-              <td className="fw-medium">{item.ten_sp}</td>
-              <td>{Number(item.gia).toLocaleString("vi-VN")}₫</td>
-              <td className="text-center">{item.quantity}</td>
-              <td className="fw-bold text-success">
-                {(Number(item.gia) * item.quantity).toLocaleString("vi-VN")}₫
-              </td>
+        <Table striped bordered hover responsive className="table-success shadow-sm">
+          <thead className="table-dark">
+            <tr>
+              <th>Sản phẩm</th>
+              <th>Giá</th>
+              <th>Số lượng</th>
+              <th>Thành tiền</th>
             </tr>
-          ))}
-        </tbody>
-      </Table>
+          </thead>
+          <tbody>
+            {cart.map((item) => (
+              <tr key={item.ma_sp}>
+                <td className="fw-medium">{item.ten_sp}</td>
+                <td>{Number(item.gia).toLocaleString("vi-VN")}₫</td>
+                <td className="text-center">{item.quantity}</td>
+                <td className="fw-bold text-success">
+                  {(Number(item.gia) * item.quantity).toLocaleString("vi-VN")}₫
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
 
-      <div className="text-end mt-4">
-        <h2 className="text-success">
-          Tổng cộng: <strong className="text-danger fs-1">{totalPrice.toLocaleString("vi-VN")}₫</strong>
-        </h2>
-      </div>
-
-      {!orderPlaced ? (
-        // Bước 1: Đặt hàng (giữ nguyên như bạn)
-        <div className="text-center mt-5 d-grid gap-3">
-          <Button
-            variant="success"
-            size="lg"
-            className="px-5 py-3 fw-bold"
-            onClick={handleDatHang}
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <Spinner animation="border" size="sm" className="me-2" />
-                Đang xử lý...
-              </>
-            ) : (
-              "Xác Nhận Đặt Hàng"
-            )}
-          </Button>
-
-          <Button variant="outline-success" size="lg" as={Link} to="/cart">
-            <FaShoppingCart className="me-2" /> Quay lại giỏ hàng
-          </Button>
-
-          <Button variant="outline-primary" size="lg" as={Link} to="/">
-            <FaHome className="me-2" /> Trở về Trang Chủ
-          </Button>
+        <div className="text-end mt-4">
+          <h2 className="text-success">
+            Tổng cộng: <strong className="text-danger fs-1">{totalPrice.toLocaleString("vi-VN")}₫</strong>
+          </h2>
         </div>
-      ) : (
-        // Bước 2: Thanh toán (thêm mới - hiện form chọn phương thức)
-        <div className="mt-5">
-          <h3 className="text-center text-success mb-4">Chọn phương thức thanh toán</h3>
 
-          <Form className="mx-auto" style={{ maxWidth: "500px" }}>
-            <Form.Group className="mb-4">
-              <Form.Label>Phương thức thanh toán</Form.Label>
-              <Form.Select value={phuongthuc} onChange={(e) => setPhuongthuc(e.target.value)}>
-                <option value="COD">Thanh toán khi nhận hàng (COD)</option>
-                <option value="Chuyển khoản">Chuyển khoản ngân hàng</option>
-                <option value="Ví điện tử">Ví điện tử (Momo/ZaloPay)</option>
-              </Form.Select>
-            </Form.Group>
-
+        {!orderPlaced ? (
+          // Bước 1: Đặt hàng (giữ nguyên như bạn)
+          <div className="text-center mt-5 d-grid gap-3">
             <Button
               variant="success"
               size="lg"
-              className="w-100 py-3 fw-bold"
-              onClick={phuongthuc === "COD" ? handleThanhToan : handleRedirectThanhToan} // COD: lưu DB, khác: redirect + lưu
+              className="px-5 py-3 fw-bold"
+              onClick={handleDatHang}
               disabled={loading}
             >
               {loading ? (
                 <>
                   <Spinner animation="border" size="sm" className="me-2" />
-                  Đang thanh toán...
+                  Đang xử lý...
                 </>
               ) : (
-                "Xác Nhận Thanh Toán"
+                "Xác Nhận Đặt Hàng"
               )}
             </Button>
-          </Form>
-        </div>
-      )}
-    </Container>
+
+            <Button variant="outline-success" size="lg" as={Link} to="/cart">
+              <FaShoppingCart className="me-2" /> Quay lại giỏ hàng
+            </Button>
+
+            <Button variant="outline-primary" size="lg" as={Link} to="/">
+              <FaHome className="me-2" /> Trở về Trang Chủ
+            </Button>
+          </div>
+        ) : (
+          // Bước 2: Thanh toán (thêm mới - hiện form chọn phương thức)
+          <div className="mt-5">
+            <h3 className="text-center text-success mb-4">Chọn phương thức thanh toán</h3>
+
+            <Form className="mx-auto" style={{ maxWidth: "500px" }}>
+              <Form.Group className="mb-4">
+                <Form.Label>Phương thức thanh toán</Form.Label>
+                <Form.Select value={phuongthuc} onChange={(e) => setPhuongthuc(e.target.value)}>
+                  <option value="COD">Thanh toán khi nhận hàng (COD)</option>
+                  <option value="Chuyển khoản">Chuyển khoản ngân hàng</option>
+                  <option value="Ví điện tử">Ví điện tử (Momo/ZaloPay)</option>
+                </Form.Select>
+              </Form.Group>
+
+              <Button
+                variant="success"
+                size="lg"
+                className="w-100 py-3 fw-bold"
+                onClick={phuongthuc === "COD" ? handleThanhToan : handleRedirectThanhToan} // COD: lưu DB, khác: redirect + lưu
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Spinner animation="border" size="sm" className="me-2" />
+                    Đang thanh toán...
+                  </>
+                ) : (
+                  "Xác Nhận Thanh Toán"
+                )}
+              </Button>
+            </Form>
+          </div>
+        )}
+      </Container>
+      <Footer />
+    </>
   );
 }
 

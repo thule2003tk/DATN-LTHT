@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getAllSanPham } from "../api/sanpham.js";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
+import Footer from "../components/Footer";
 import {
   Container,
   Row,
@@ -76,16 +77,16 @@ function Products() {
         filtered = products.filter((p) =>
           p.loai_sp && (
             p.loai_sp.toLowerCase().includes("hoa quả") ||
-            (p.loai_sp.toLowerCase().includes("thực phẩm theo mùa") && 
-             !p.ten_sp.toLowerCase().includes("măng"))
+            (p.loai_sp.toLowerCase().includes("thực phẩm theo mùa") &&
+              !p.ten_sp.toLowerCase().includes("măng"))
           )
         );
       } else if (categoryQuery === "rau-cu") {
         filtered = products.filter((p) =>
           p.loai_sp && (
             p.loai_sp.toLowerCase().includes("rau củ") ||
-            (p.loai_sp.toLowerCase().includes("thực phẩm theo mùa") && 
-             p.ten_sp.toLowerCase().includes("măng"))
+            (p.loai_sp.toLowerCase().includes("thực phẩm theo mùa") &&
+              p.ten_sp.toLowerCase().includes("măng"))
           )
         );
       } else if (categoryQuery === "hai-san") {
@@ -222,7 +223,7 @@ function Products() {
                             Mua ngay
                           </Button>
                         </div>
-                        
+
                       </Card.Body>
                     </Card>
                   </Link>
@@ -232,6 +233,7 @@ function Products() {
           </Row>
         )}
       </Container>
+      <Footer />
 
       <style jsx>{`
         .product-card:hover {

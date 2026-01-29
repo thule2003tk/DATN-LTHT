@@ -1,0 +1,84 @@
+/* ===== STICKY HEADER ===== */
+.sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 1050;
+  background-color: #ffffff;
+}
+
+/* ===== LOGO FIX CHỈ TO LOGO – KHÔNG TO NAV ===== */
+.logo {
+  text-decoration: none;
+  line-height: 1;              /* 🔥 QUAN TRỌNG */
+  padding: 0;                  /* không làm nav cao */
+}
+
+/* LOGO IMAGE */
+.logo-img {
+  height: 60px;                /* 🔥 TO HƠN RÕ RỆT */
+  width: auto;                 /* giữ đúng tỉ lệ */
+  object-fit: contain;
+  margin-right: 12px;
+  display: block;
+}
+
+/* LOGO TEXT */
+.logo-text {
+  font-size: 20px;             /* chữ to vừa */
+  font-weight: 800;
+  color: #1f6b3a;
+  line-height: 1.1;            /* không đẩy chiều cao */
+  white-space: nowrap;
+}
+
+
+/* SEARCH */
+.header-search {
+  flex: 1;
+  max-width: 520px;
+}
+
+/* MENU */
+.main-menu {
+  background: linear-gradient(135deg, #1f6b3a, #2f8f4e);
+}
+
+.menu-links {
+  gap: 36px;
+}
+
+.menu-links .nav-link,
+.menu-links .dropdown-toggle {
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+.menu-links .nav-link:hover {
+  text-decoration: underline;
+}
+
+/* CART */
+.cart-icon {
+  color: #333;
+}
+
+.cart-icon:hover {
+  color: #1f6b3a;
+}
+
+/* ===== MOBILE ===== */
+@media (max-width: 768px) {
+  .logo-img {
+    width: 44px;
+    height: 44px;
+  }
+
+  .logo-text {
+    font-size: 17px;
+  }
+
+  .header-search {
+    max-width: 100%;
+    margin: 12px 0;
+  }
+}

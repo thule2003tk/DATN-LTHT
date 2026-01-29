@@ -11,10 +11,13 @@ import Profile from "./pages/Profile";
 import Orders from "./pages/Orders";
 import BlogDetail from "./pages/BlogDetail";
 import ThanhToan from "./pages/ThanhToan";
+import LienHe from "./pages/LienHe";
+
 
 // ADMIN
 import AdminLayout from "./admin/AdminLayout";
 import AdminDashboard from "./admin/Dashboard";
+import AdminDanhMuc from "./admin/DanhMucAdmin";
 import AdminProducts from "./admin/Products";
 import AdminOrders from "./admin/AdminOrders";
 import AdminCustomers from "./admin/Customers";
@@ -24,9 +27,13 @@ import AdminContacts from "./admin/Contacts";
 import AdminUsers from "./admin/Users";
 import AdminBlog from "./admin/AdminBlog";
 import AdminRoute from "./admin/AdminRoute";
+import ProductAdd from "./admin/ProductAdd";
+import ProductEdit from "./admin/ProductEdit";
 
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
+import DonViTinhAdmin from "./admin/DonViTinhAdmin";
+import DonViSanPhamAdmin from "./admin/DonViSanPhamAdmin";
 
 function App() {
   return (
@@ -47,6 +54,7 @@ function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/thanhtoan" element={<ThanhToan />} />
+            <Route path="/lien-he" element={<LienHe />} />
             {/* BLOG DETAIL */}
             <Route path="/blog/:id" element={<BlogDetail />} />
 
@@ -61,6 +69,12 @@ function App() {
               <Route path="contacts" element={<AdminContacts />} />
               <Route path="users" element={<AdminUsers />} />
               <Route path="blog" element={<AdminBlog />} />
+              <Route path="products" element={<AdminProducts />} />
+              <Route path="products/add" element={<ProductAdd />} />
+              <Route path="products/edit/:id" element={<ProductEdit />} />
+              <Route path="danhmuc" element={<AdminDanhMuc />} /> 
+              <Route path="donvitinh" element={<DonViTinhAdmin />} />
+              <Route path="donvisanpham" element={<DonViSanPhamAdmin />} />
             </Route>
 
           </Routes>

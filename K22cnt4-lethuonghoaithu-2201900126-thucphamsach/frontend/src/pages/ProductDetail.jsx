@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { getSanPhamById, getDonViBySanPham } from "../api/sanpham.js";
+import { getDonViSanPhamByMaSP } from "../api/donvisanpham.js";
 import { useCart } from "../context/CartContext.jsx";
 import { Container, Row, Col, Button, Form, Alert } from "react-bootstrap";
 import { FaShoppingCart } from "react-icons/fa";
@@ -41,7 +42,7 @@ function ProductDetail() {
 
         setProduct(sp);
 
-        const donvi = await getDonViBySanPham(id);
+        const donvi = await getDonViSanPhamByMaSP(id);        
         console.log("✅ DonVi:", donvi);
 
         setDonViList(donvi || []);

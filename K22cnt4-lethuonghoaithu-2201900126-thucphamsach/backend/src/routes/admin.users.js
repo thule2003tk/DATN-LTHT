@@ -39,7 +39,7 @@ router.put("/:id/role", verifyToken, checkAdmin, (req, res) => {
   const { id } = req.params;
   const { vai_tro } = req.body;
 
-  if (!["admin", "member", "customer"].includes(vai_tro)) {
+  if (!["admin", "staff", "customer"].includes(vai_tro)) {
     return res.status(400).json({ error: "Vai trò không hợp lệ" });
   }
 

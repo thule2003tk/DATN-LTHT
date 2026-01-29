@@ -1,54 +1,49 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Container, Button, Table, Alert, Spinner, Form } from "react-bootstrap";
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Button,
+  Table,
+  Alert,
+  Spinner,
+  Form,
+} from "react-bootstrap";
 import { FaHome, FaShoppingCart } from "react-icons/fa";
 import { useCart } from "../context/CartContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
-// API tạo đơn hàng (giữ nguyên)
-const createOrder = async (orderData, token = null) => {
-  const response = await fetch("http://localhost:3001/api/donhang", {
+/* ================= API ================= */
+const createOrder = async (orderData, token) => {
+  const res = await fetch("http://localhost:3001/api/donhang", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` }),
+      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(orderData),
   });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(
-      errorData.error || errorData.message || `Lỗi ${response.status}: ${response.statusText}`
-    );
-  }
-
-  return await response.json();
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Lỗi tạo đơn hàng");
+  return data;
 };
 
-// API thanh toán (thêm mới - lưu vào bảng thanhtoan + cập nhật donhang)
 const thanhToanDonHang = async (ma_donhang, phuongthuc, sotien) => {
-  const ma_tt = "TT" + Math.floor(100000 + Math.random() * 900000); // Tạo mã thanh toán tự động
-
-  const response = await fetch("http://localhost:3001/api/donhang/thanhtoan", {
+  const res = await fetch("http://localhost:3001/api/donhang/thanhtoan", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      ma_donhang,
-      phuongthuc,
-      sotien,
-      ma_tt,
-    }),
+    body: JSON.stringify({ ma_donhang, phuongthuc, sotien }),
   });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || "Lỗi thanh toán");
-  }
-
-  return await response.json();
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Lỗi thanh toán");
+  return data;
 };
 
+/* ================= COMPONENT ================= */
 function Checkout() {
   const { cart, totalPrice, clearCart } = useCart();
   const { user, token } = useAuth();
@@ -57,229 +52,228 @@ function Checkout() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [orderPlaced, setOrderPlaced] = useState(false); // Đã đặt đơn → hiện form thanh toán
-  const [maDonHang, setMaDonHang] = useState(null); // Lưu ma_donhang sau khi tạo
-  const [phuongthuc, setPhuongthuc] = useState("COD"); // Phương thức mặc định
 
+  const [maDonHang, setMaDonHang] = useState(null);
+  const [orderPlaced, setOrderPlaced] = useState(false);
+  const [phuongthuc, setPhuongthuc] = useState("COD");
+
+  const [shipping, setShipping] = useState({
+    hoten: user?.hoten || "",
+    sdt: "",
+    diachi: "",
+    ghichu: "",
+  });
+
+  /* ===== BẢO VỆ ROUTE ===== */
   useEffect(() => {
-    if (!user) {
-      navigate("/login", { replace: true, state: { from: "/checkout" } });
-    }
+    if (!user) navigate("/login", { replace: true });
   }, [user, navigate]);
 
-  if (cart.length === 0 || !user) {
+  if (!user || cart.length === 0) {
     return (
-      <Container className="my-5 py-5 text-center">
-        <h1 className="text-success mb-5 fw-bold">Thanh Toán Đơn Hàng</h1>
-        <p className="fs-4 text-muted">
-          {cart.length === 0 ? "Giỏ hàng trống" : "Vui lòng đăng nhập để tiếp tục"}
-        </p>
-        <Button variant="success" size="lg" as={Link} to={cart.length === 0 ? "/" : "/login"}>
-          <FaHome className="me-2" /> {cart.length === 0 ? "Tiếp tục mua sắm" : "Đăng nhập"}
+      <Container className="my-5 text-center">
+        <h2 className="text-success fw-bold">Thanh Toán Đơn Hàng</h2>
+        <p className="text-muted mt-3">Giỏ hàng trống hoặc chưa đăng nhập</p>
+        <Button as={Link} to="/" variant="success">
+          <FaHome className="me-2" /> Về Trang Chủ
         </Button>
       </Container>
     );
   }
 
+  /* ================= ĐẶT HÀNG ================= */
   const handleDatHang = async () => {
-    setLoading(true);
     setError("");
     setSuccess("");
 
-    // Debug
-    console.log("User hiện tại khi đặt hàng:", user);
-    console.log("ma_kh gửi lên backend:", user?.ma_kh);
+    if (!shipping.hoten || !shipping.sdt || !shipping.diachi) {
+      setError("❌ Vui lòng nhập đầy đủ thông tin giao hàng");
+      return;
+    }
+
+    setLoading(true);
 
     try {
       const orderData = {
-        ma_kh: user?.ma_kh || null,
-        ngay_dat: new Date().toISOString(),
+        ma_kh: user.ma_kh,
         tongtien: totalPrice,
-        trangthai: "Chờ xử lý", // backend sẽ override dựa trên phuongthuc nếu cần
-        phuongthuc: phuongthuc, // ← THÊM DÒNG NÀY để backend biết set trạng thái ban đầu
-        ma_km: null,
-        items: cart.map((item) => ({
-          ma_sp: item.ma_sp,
-          soluong: item.quantity,
-          dongia: Number(item.gia),
+        phuongthuc,
+        hoten_nhan: shipping.hoten,
+        sdt_nhan: shipping.sdt,
+        diachi_nhan: shipping.diachi,
+        ghichu: shipping.ghichu,
+        items: cart.map((i) => ({
+          ma_sp: i.ma_sp,
+          soluong: i.quantity,
+          dongia: Number(i.gia),
         })),
       };
 
-      console.log("Dữ liệu đặt hàng:", orderData);
-
       const result = await createOrder(orderData, token);
 
-      setMaDonHang(result.ma_donhang); // Lưu mã đơn để thanh toán
+      setMaDonHang(result.ma_donhang);
+      setOrderPlaced(true);
+      setSuccess(`✅ Đặt hàng thành công! Mã đơn: ${result.ma_donhang}`);
 
-      clearCart?.();
+      // 👉 CHỈ clear cart khi đã tạo đơn thành công
+      clearCart();
       localStorage.removeItem("cart");
-
-      const savedOrders = JSON.parse(localStorage.getItem("orders") || "[]");
-      savedOrders.push({
-        ma_donhang: result.ma_donhang,
-        date: new Date().toISOString(),
-        items: cart,
-        total: totalPrice,
-        status: "Chờ xử lý", // trạng thái ban đầu sẽ được backend set đúng
-      });
-      localStorage.setItem("orders", JSON.stringify(savedOrders));
-
-      setOrderPlaced(true); // Chuyển sang bước thanh toán
-      setSuccess(`Đặt hàng thành công! Mã đơn: ${result.ma_donhang}`);
     } catch (err) {
-      console.error("Lỗi đặt hàng:", err);
-      setError(err.message || "Có lỗi xảy ra khi đặt hàng. Vui lòng thử lại!");
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
+  /* ================= THANH TOÁN ================= */
   const handleThanhToan = async () => {
+    if (!maDonHang) return;
+
     setLoading(true);
     setError("");
 
     try {
-      const res = await thanhToanDonHang(maDonHang, phuongthuc, totalPrice);
+      await thanhToanDonHang(maDonHang, phuongthuc, totalPrice);
+      setSuccess("🎉 Thanh toán thành công!");
 
-      setSuccess(
-        `Thanh toán thành công! 🎉\n` +
-        `Mã thanh toán: ${res.ma_tt || "TTXXXXXX"}\n` +
-        `Trạng thái đơn: ${res.trangthai}\n\n` +
-        "Đang chuyển về danh sách đơn hàng..."
-      );
-
-      // Chuyển về trang danh sách đơn hàng sau 4 giây
-      setTimeout(() => navigate("/orders", { replace: true }), 4000);
+      // 👉 CHUYỂN SANG ORDERS SAU KHI THANH TOÁN OK
+      setTimeout(() => navigate("/orders"), 1500);
     } catch (err) {
-      setError(err.message || "Lỗi thanh toán. Vui lòng thử lại!");
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // THÊM LOGIC REDIRECT CHO PHƯƠNG THỨC NGOÀI COD (demo link, bạn thay real nếu cần)
-  const handleRedirectThanhToan = () => {
-    let redirectUrl = "";
-    if (phuongthuc === "Chuyển khoản") {
-      redirectUrl = `https://www.nganluong.vn/button_payment.php?receiver=your_email&product_name=DonHang_${maDonHang}&price=${totalPrice}`; // Demo ngân hàng
-    } else if (phuongthuc === "Ví điện tử") {
-      redirectUrl = `https://developers.momo.vn/v2/vi/docs/test-payment?amount=${totalPrice}&orderId=${maDonHang}`; // Demo Momo
-    }
-
-    if (redirectUrl) {
-      window.open(redirectUrl, "_blank"); // Mở tab mới thanh toán
-      // Sau thanh toán (demo) → lưu DB tự động
-      handleThanhToan();
-    }
-  };
-
+  /* ================= UI ================= */
   return (
-    <Container className="my-5 py-5">
-      <h1 className="text-center mb-5 text-success fw-bold">Thanh Toán Đơn Hàng</h1>
+    <Container className="my-5">
+      <h1 className="text-center text-success fw-bold mb-5">
+        🧾 Thanh Toán Đơn Hàng
+      </h1>
 
-      {error && (
-        <Alert variant="danger" dismissible onClose={() => setError("")}>
-          {error}
-        </Alert>
-      )}
+      {error && <Alert variant="danger">{error}</Alert>}
+      {success && <Alert variant="success">{success}</Alert>}
 
-      {success && (
-        <Alert variant="success" dismissible onClose={() => setSuccess("")}>
-          {success}
-        </Alert>
-      )}
+      <Row className="g-4">
+        {/* ===== TRÁI ===== */}
+        <Col lg={8}>
+          <Card className="mb-4">
+            <Card.Body>
+              <h5 className="fw-bold mb-3">🛒 Sản phẩm</h5>
+              <Table>
+                <thead>
+                  <tr>
+                    <th>Sản phẩm</th>
+                    <th>Giá</th>
+                    <th>SL</th>
+                    <th>Thành tiền</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cart.map((i) => (
+                    <tr key={i.ma_sp}>
+                      <td>{i.ten_sp}</td>
+                      <td>{i.gia.toLocaleString()}₫</td>
+                      <td>{i.quantity}</td>
+                      <td>
+                        {(i.gia * i.quantity).toLocaleString()}₫
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </Card.Body>
+          </Card>
 
-      <Table striped bordered hover responsive className="table-success shadow-sm">
-        <thead className="table-dark">
-          <tr>
-            <th>Sản phẩm</th>
-            <th>Giá</th>
-            <th>Số lượng</th>
-            <th>Thành tiền</th>
-          </tr>
-        </thead>
-        <tbody>
-          {cart.map((item) => (
-            <tr key={item.ma_sp}>
-              <td className="fw-medium">{item.ten_sp}</td>
-              <td>{Number(item.gia).toLocaleString("vi-VN")}₫</td>
-              <td className="text-center">{item.quantity}</td>
-              <td className="fw-bold text-success">
-                {(Number(item.gia) * item.quantity).toLocaleString("vi-VN")}₫
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
+          <Card>
+            <Card.Body>
+              <h5 className="fw-bold mb-3">📦 Thông tin giao hàng</h5>
+              <Form.Control
+                className="mb-2"
+                placeholder="Họ tên"
+                value={shipping.hoten}
+                onChange={(e) =>
+                  setShipping({ ...shipping, hoten: e.target.value })
+                }
+              />
+              <Form.Control
+                className="mb-2"
+                placeholder="SĐT"
+                value={shipping.sdt}
+                onChange={(e) =>
+                  setShipping({ ...shipping, sdt: e.target.value })
+                }
+              />
+              <Form.Control
+                className="mb-2"
+                placeholder="Địa chỉ"
+                value={shipping.diachi}
+                onChange={(e) =>
+                  setShipping({ ...shipping, diachi: e.target.value })
+                }
+              />
+              <Form.Control
+                as="textarea"
+                rows={2}
+                placeholder="Ghi chú"
+                value={shipping.ghichu}
+                onChange={(e) =>
+                  setShipping({ ...shipping, ghichu: e.target.value })
+                }
+              />
+            </Card.Body>
+          </Card>
+        </Col>
 
-      <div className="text-end mt-4">
-        <h2 className="text-success">
-          Tổng cộng: <strong className="text-danger fs-1">{totalPrice.toLocaleString("vi-VN")}₫</strong>
-        </h2>
-      </div>
+        {/* ===== PHẢI ===== */}
+        <Col lg={4}>
+          <Card>
+            <Card.Body>
+              <h5 className="fw-bold mb-3">💰 Thanh toán</h5>
 
-      {!orderPlaced ? (
-        // Bước 1: Đặt hàng (giữ nguyên như bạn)
-        <div className="text-center mt-5 d-grid gap-3">
-          <Button
-            variant="success"
-            size="lg"
-            className="px-5 py-3 fw-bold"
-            onClick={handleDatHang}
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <Spinner animation="border" size="sm" className="me-2" />
-                Đang xử lý...
-              </>
-            ) : (
-              "Xác Nhận Đặt Hàng"
-            )}
-          </Button>
+              <p className="fw-bold fs-5">
+                Tổng cộng:{" "}
+                <span className="text-danger">
+                  {totalPrice.toLocaleString()}₫
+                </span>
+              </p>
 
-          <Button variant="outline-success" size="lg" as={Link} to="/cart">
-            <FaShoppingCart className="me-2" /> Quay lại giỏ hàng
-          </Button>
-
-          <Button variant="outline-primary" size="lg" as={Link} to="/">
-            <FaHome className="me-2" /> Trở về Trang Chủ
-          </Button>
-        </div>
-      ) : (
-        // Bước 2: Thanh toán (thêm mới - hiện form chọn phương thức)
-        <div className="mt-5">
-          <h3 className="text-center text-success mb-4">Chọn phương thức thanh toán</h3>
-
-          <Form className="mx-auto" style={{ maxWidth: "500px" }}>
-            <Form.Group className="mb-4">
-              <Form.Label>Phương thức thanh toán</Form.Label>
-              <Form.Select value={phuongthuc} onChange={(e) => setPhuongthuc(e.target.value)}>
-                <option value="COD">Thanh toán khi nhận hàng (COD)</option>
-                <option value="Chuyển khoản">Chuyển khoản ngân hàng</option>
-                <option value="Ví điện tử">Ví điện tử (Momo/ZaloPay)</option>
-              </Form.Select>
-            </Form.Group>
-
-            <Button
-              variant="success"
-              size="lg"
-              className="w-100 py-3 fw-bold"
-              onClick={phuongthuc === "COD" ? handleThanhToan : handleRedirectThanhToan} // COD: lưu DB, khác: redirect + lưu
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <Spinner animation="border" size="sm" className="me-2" />
-                  Đang thanh toán...
-                </>
+              {!orderPlaced ? (
+                <Button
+                  className="w-100"
+                  size="lg"
+                  onClick={handleDatHang}
+                  disabled={loading}
+                >
+                  {loading ? "Đang xử lý..." : "Xác nhận đặt hàng"}
+                </Button>
               ) : (
-                "Xác Nhận Thanh Toán"
+                <>
+                  <Form.Select
+                    className="mb-3"
+                    value={phuongthuc}
+                    onChange={(e) => setPhuongthuc(e.target.value)}
+                  >
+                    <option value="COD">COD</option>
+                    <option value="Chuyển khoản">Chuyển khoản</option>
+                    <option value="Ví điện tử">Ví điện tử</option>
+                  </Form.Select>
+
+                  <Button
+                    className="w-100"
+                    variant="success"
+                    onClick={handleThanhToan}
+                    disabled={loading}
+                  >
+                    {loading ? "Đang thanh toán..." : "Thanh toán"}
+                  </Button>
+                </>
               )}
-            </Button>
-          </Form>
-        </div>
-      )}
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
     </Container>
   );
 }
