@@ -48,7 +48,7 @@ function Users() {
 
   return (
     <div>
-      <h2 className="text-success mb-4">🏠 Quản lý người dùng</h2>
+      <h2 className="text-success mb-4">👤 Quản lý người dùng</h2>
 
       {error && <Alert variant="danger">{error}</Alert>}
 
@@ -72,7 +72,7 @@ function Users() {
                 <td>{u.email}</td>
                 <td>
                   <Badge bg={u.vai_tro === "admin" ? "danger" : u.vai_tro === "staff" ? "warning" : "info"} text={u.vai_tro === "staff" ? "dark" : "white"}>
-                    {u.vai_tro.toUpperCase()}
+                    {u.vai_tro === "member" ? "MEMBER" : u.vai_tro.toUpperCase()}
                   </Badge>
                 </td>
                 <td>
@@ -85,13 +85,13 @@ function Users() {
                     {/* Admin mới được đổi Role và Block */}
                     {currentUser.vai_tro === "admin" && u.ma_nguoidung !== currentUser.ma_nguoidung && (
                       <>
-                        {u.vai_tro === "customer" ? (
+                        {u.vai_tro === "member" ? (
                           <Button size="sm" variant="outline-success" onClick={() => handleRoleChange(u.ma_nguoidung, "staff")}>
                             Duyệt Staff
                           </Button>
                         ) : u.vai_tro === "staff" ? (
-                          <Button size="sm" variant="outline-warning" onClick={() => handleRoleChange(u.ma_nguoidung, "customer")}>
-                            Hạ quyền
+                          <Button size="sm" variant="outline-warning" onClick={() => handleRoleChange(u.ma_nguoidung, "member")}>
+                            Hạ quyền Member
                           </Button>
                         ) : null}
 

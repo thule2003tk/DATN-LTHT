@@ -66,7 +66,7 @@ function AdminLayout() {
             <li className="nav-header px-3 mt-3 mb-1 small text-uppercase opacity-75">Đối tác & Liên hệ</li>
             <li className="mb-1">
               <Link to="/admin/customers" className="nav-link text-white py-2 hover-bg">
-                👥 Khách hàng
+                👥 Thành viên
               </Link>
             </li>
             <li className="mb-1">

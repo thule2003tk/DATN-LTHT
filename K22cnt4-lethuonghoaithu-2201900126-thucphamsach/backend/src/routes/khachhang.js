@@ -6,7 +6,7 @@ const db = require("../config/db.js");
 router.get("/", (req, res) => {
   const sql = `
     SELECT DISTINCT 
-      n.ma_nguoidung as ma_kh, 
+      CAST(n.ma_nguoidung AS CHAR) COLLATE utf8mb4_general_ci as ma_kh, 
       n.hoten as ten_kh, 
       n.email, 
       n.sodienthoai, 
@@ -14,9 +14,22 @@ router.get("/", (req, res) => {
       n.trangthai,
       n.vai_tro
     FROM nguoidung n
-    INNER JOIN donhang d ON n.ma_nguoidung = d.ma_kh
+    INNER JOIN donhang d ON CAST(n.ma_nguoidung AS CHAR) COLLATE utf8mb4_general_ci = d.ma_kh
     WHERE n.vai_tro != 'admin'
-    ORDER BY n.ma_nguoidung ASC
+
+    UNION
+
+    SELECT DISTINCT 
+      k.ma_kh COLLATE utf8mb4_general_ci, 
+      k.ten_kh, 
+      k.email, 
+      k.sodienthoai, 
+      k.diachi, 
+      k.trangthai,
+      'member' as vai_tro
+    FROM khachhang k
+    INNER JOIN donhang d ON k.ma_kh = d.ma_kh
+    ORDER BY ma_kh ASC
   `;
 
   db.query(sql, (err, rows) => {
@@ -33,13 +46,26 @@ router.put("/:id", (req, res) => {
   const { id } = req.params;
   const { ten_kh, email, sodienthoai, diachi } = req.body;
 
-  const sql = `
-    UPDATE nguoidung 
-    SET hoten = ?, email = ?, sodienthoai = ?, diachi = ? 
-    WHERE ma_nguoidung = ?
-  `;
+  let sql;
+  let params;
 
-  db.query(sql, [ten_kh, email, sodienthoai, diachi, id], (err, result) => {
+  if (id.startsWith("KH")) {
+    sql = `
+      UPDATE khachhang 
+      SET ten_kh = ?, email = ?, sodienthoai = ?, diachi = ? 
+      WHERE ma_kh = ?
+    `;
+    params = [ten_kh, email, sodienthoai, diachi, id];
+  } else {
+    sql = `
+      UPDATE nguoidung 
+      SET hoten = ?, email = ?, sodienthoai = ?, diachi = ? 
+      WHERE ma_nguoidung = ?
+    `;
+    params = [ten_kh, email, sodienthoai, diachi, id];
+  }
+
+  db.query(sql, params, (err, result) => {
     if (err) {
       console.error("Lỗi cập nhật khách hàng:", err.message);
       return res.status(500).json({ error: "Lỗi server" });
@@ -57,7 +83,13 @@ router.put("/:id/status", (req, res) => {
     return res.status(400).json({ error: "Trạng thái không hợp lệ" });
   }
 
-  const sql = "UPDATE nguoidung SET trangthai = ? WHERE ma_nguoidung = ?";
+  let sql;
+  if (id.startsWith("KH")) {
+    sql = "UPDATE khachhang SET trangthai = ? WHERE ma_kh = ?";
+  } else {
+    sql = "UPDATE nguoidung SET trangthai = ? WHERE ma_nguoidung = ?";
+  }
+
   db.query(sql, [trangthai, id], (err, result) => {
     if (err) {
       console.error("Lỗi cập nhật trạng thái người dùng:", err.message);
