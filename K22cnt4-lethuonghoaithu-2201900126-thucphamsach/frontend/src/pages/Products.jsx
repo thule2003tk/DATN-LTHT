@@ -20,6 +20,7 @@ import Footer from "../components/Footer.jsx";
 function Products() {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -29,35 +30,31 @@ function Products() {
   const categoryQuery = searchParams.get("category");
   const searchQuery = searchParams.get("search");
 
-  const categoryTitles = {
-    "rau-cu": "Rau Củ Sạch",
-    "hoa-qua": "Hoa Quả Tươi",
-    "hai-san": "Hải Sản Tươi Sống",
-    "do-kho": "Đồ Khô Hữu Cơ",
-    "theo-mua": "Thực Phẩm Theo Mùa",
-    thit: "Thịt Sạch",
-  };
-
-  const currentCategoryTitle =
-    categoryTitles[categoryQuery] || "Tất Cả Sản Phẩm";
+  const currentCategoryObj = categories.find(c => c.ma_danhmuc === categoryQuery);
+  const currentCategoryTitle = currentCategoryObj ? currentCategoryObj.ten_danhmuc : (categoryQuery ? "Loại sản phẩm" : "Tất Cả Sản Phẩm");
 
   const { user } = useAuth();
   const navigate = useNavigate();
   const { addToCart } = useCart();
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchData = async () => {
       try {
-        const data = await getAllSanPham();
-        setProducts(data);
+        const { getDanhMuc } = await import("../api/danhmuc");
+        const [prodData, catData] = await Promise.all([
+          getAllSanPham(),
+          getDanhMuc()
+        ]);
+        setProducts(prodData);
+        setCategories(catData);
       } catch (err) {
         console.error(err);
-        setError("Không thể tải sản phẩm");
+        setError("Không thể tải sản phẩm hoặc danh mục");
       } finally {
         setLoading(false);
       }
     };
-    fetchProducts();
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -70,51 +67,15 @@ function Products() {
     let filtered = products;
 
     if (categoryQuery) {
-      if (categoryQuery === "theo-mua") {
-        filtered = products.filter(
-          (p) =>
-            p.loai_sp && p.loai_sp.toLowerCase().includes("thực phẩm theo mùa"),
-        );
-      } else if (categoryQuery === "hoa-qua") {
-        filtered = products.filter(
-          (p) =>
-            p.loai_sp &&
-            (p.loai_sp.toLowerCase().includes("hoa quả") ||
-              (p.loai_sp.toLowerCase().includes("thực phẩm theo mùa") &&
-                !p.ten_sp.toLowerCase().includes("măng"))),
-        );
-      } else if (categoryQuery === "rau-cu") {
-        filtered = products.filter(
-          (p) =>
-            p.loai_sp &&
-            (p.loai_sp.toLowerCase().includes("rau củ") ||
-              (p.loai_sp.toLowerCase().includes("thực phẩm theo mùa") &&
-                p.ten_sp.toLowerCase().includes("măng"))),
-        );
-      } else if (categoryQuery === "hai-san") {
-        filtered = products.filter(
-          (p) => p.loai_sp && p.loai_sp.toLowerCase().includes("hải sản"),
-        );
-      } else if (categoryQuery === "do-kho") {
-        filtered = products.filter(
-          (p) =>
-            p.loai_sp &&
-            (p.loai_sp.toLowerCase().includes("đồ khô") ||
-              p.loai_sp.toLowerCase().includes("ngũ cốc")),
-        );
-      } else if (categoryQuery === "thit") {
-        filtered = products.filter(
-          (p) => p.loai_sp && p.loai_sp.toLowerCase().includes("thịt"),
-        );
-      }
+      filtered = products.filter(p => p.ma_danhmuc === categoryQuery);
     }
 
     if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase().trim();
       filtered = filtered.filter(
         (p) =>
-          p.ten_sp.toLowerCase().includes(searchTerm.toLowerCase().trim()) ||
-          (p.loai_sp &&
-            p.loai_sp.toLowerCase().includes(searchTerm.toLowerCase().trim())),
+          p.ten_sp.toLowerCase().includes(term) ||
+          (p.ten_danhmuc && p.ten_danhmuc.toLowerCase().includes(term))
       );
     }
 
@@ -213,7 +174,7 @@ function Products() {
                           {p.ten_sp}
                         </h5>
                         <p className="text-muted small">
-                          {p.loai_sp || "Thực phẩm sạch"}
+                          {p.ten_danhmuc || "Thực phẩm sạch"}
                         </p>
                         <p className="fw-bold text-success fs-4 my-3">
                           {Number(p.gia).toLocaleString("vi-VN")}₫
@@ -234,7 +195,7 @@ function Products() {
                           >
                             <FaShoppingCart className="me-2" /> Thêm vào giỏ
                           </Button>
-                          {/* "MUA NGAY" → THÊM + CHUYỂN SANG THANH TOÁN */}
+                          {/* "MUA NGAY" → KHÔNG THÊM VÀO GIỎ, CHUYỂN THẲNG STATE SANG THANH TOÁN */}
                           <Button
                             variant="success"
                             onClick={(e) => {
@@ -242,8 +203,12 @@ function Products() {
                               if (!user) {
                                 navigate("/login");
                               } else {
-                                addToCart(p);
-                                navigate("/checkout");
+                                // 🚀 Truyền thẳng sản phẩm qua state để Checkout nhận diện "Mua ngay"
+                                navigate("/checkout", {
+                                  state: {
+                                    buyNowItem: { ...p, quantity: 1 }
+                                  }
+                                });
                               }
                             }}
                           >

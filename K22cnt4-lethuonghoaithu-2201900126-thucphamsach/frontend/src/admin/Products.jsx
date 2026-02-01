@@ -3,6 +3,7 @@ import { Table, Button, Spinner, Alert, Image } from "react-bootstrap";
 import { getProducts, deleteProduct } from "../api/adminProducts";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import ProductUnitsModal from "./ProductUnitsModal";
 
 function AdminProducts() {
   const { user } = useAuth();
@@ -11,6 +12,9 @@ function AdminProducts() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [showUnitModal, setShowUnitModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState({ ma_sp: "", ten_sp: "" });
 
   const fetchProducts = async () => {
     try {
@@ -38,6 +42,11 @@ function AdminProducts() {
     }
   };
 
+  const handleOpenUnits = (p) => {
+    setSelectedProduct({ ma_sp: p.ma_sp, ten_sp: p.ten_sp });
+    setShowUnitModal(true);
+  };
+
   if (loading) return <Spinner animation="border" />;
   if (error) return <Alert variant="danger">{error}</Alert>;
 
@@ -60,7 +69,8 @@ function AdminProducts() {
             <th>#</th>
             <th>Hình ảnh</th>
             <th>Tên sản phẩm</th>
-            <th>Giá</th>
+            <th>Danh mục</th>
+            <th>Giá mặc định</th>
             <th>Tồn kho</th>
             <th>Hành động</th>
           </tr>
@@ -68,7 +78,7 @@ function AdminProducts() {
         <tbody>
           {products.length === 0 && (
             <tr>
-              <td colSpan="6" className="text-center">
+              <td colSpan="7" className="text-center">
                 Chưa có sản phẩm
               </td>
             </tr>
@@ -91,6 +101,7 @@ function AdminProducts() {
                 )}
               </td>
               <td>{p.ten_sp}</td>
+              <td>{p.ten_danhmuc || "Chưa phân loại"}</td>
               <td>{Number(p.gia).toLocaleString()} đ</td>
               <td>{p.soluong_ton}</td>
               <td>
@@ -121,6 +132,13 @@ function AdminProducts() {
           ))}
         </tbody>
       </Table>
+
+      <ProductUnitsModal
+        show={showUnitModal}
+        onHide={() => setShowUnitModal(false)}
+        ma_sp={selectedProduct.ma_sp}
+        ten_sp={selectedProduct.ten_sp}
+      />
 
       {/* Member bị chặn quyền */}
       {user.vai_tro === "member" && (

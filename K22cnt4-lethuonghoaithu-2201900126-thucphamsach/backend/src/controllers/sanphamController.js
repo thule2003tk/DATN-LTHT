@@ -66,20 +66,20 @@ exports.getDonViTheoSanPham = (req, res) => {
 // TẠO SẢN PHẨM (CÓ UPLOAD ẢNH)
 // ===============================
 exports.createSanPham = (req, res) => {
-  const { ten_sp, loai_sp, mota, gia, soluong_ton, ma_ncc, ma_dvt } = req.body;
+  const { ten_sp, ten_danhmuc, mota, gia, soluong_ton, ma_ncc, ma_dvt, thongtin_sanpham } = req.body;
 
   const hinhanh = req.file ? req.file.filename : null;
   const ma_sp = "SP" + Date.now();
 
   const sql = `
     INSERT INTO sanpham 
-    (ma_sp, ten_sp, loai_sp, mota, gia, soluong_ton, ma_ncc, hinhanh, ma_dvt)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (ma_sp, ten_sp, ten_danhmuc, mota, gia, soluong_ton, ma_ncc, hinhanh, ma_dvt, thongtin_sanpham)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   db.query(
     sql,
-    [ma_sp, ten_sp, loai_sp, mota, gia, soluong_ton, ma_ncc, hinhanh, ma_dvt],
+    [ma_sp, ten_sp, ten_danhmuc, mota, gia, soluong_ton, ma_ncc, hinhanh, ma_dvt, thongtin_sanpham],
     (err) => {
       if (err) {
         console.error("createSanPham error:", err);
@@ -98,21 +98,22 @@ exports.createSanPham = (req, res) => {
 // CẬP NHẬT SẢN PHẨM
 // ===============================
 exports.updateSanPham = (req, res) => {
-  const { ten_sp, loai_sp, mota, gia, soluong_ton, ma_ncc, ma_dvt } = req.body;
+  const { ten_sp, ten_danhmuc, mota, gia, soluong_ton, ma_ncc, ma_dvt, thongtin_sanpham } = req.body;
   const hinhanh = req.file ? req.file.filename : null;
 
   let sql = `
     UPDATE sanpham 
-    SET ten_sp=?, loai_sp=?, mota=?, gia=?, soluong_ton=?, ma_ncc=?, ma_dvt=?
+    SET ten_sp=?, ten_danhmuc=?, mota=?, gia=?, soluong_ton=?, ma_ncc=?, ma_dvt=?, thongtin_sanpham=?
   `;
   const params = [
     ten_sp,
-    loai_sp,
+    ten_danhmuc,
     mota,
     gia,
     soluong_ton,
     ma_ncc,
     ma_dvt,
+    thongtin_sanpham,
   ];
 
   if (hinhanh) {
@@ -129,6 +130,63 @@ exports.updateSanPham = (req, res) => {
       return res.status(500).json({ error: "Không thể cập nhật sản phẩm" });
     }
     res.json({ message: "Cập nhật sản phẩm thành công" });
+  });
+};
+
+// ===============================
+// ⭐ LẤY SẢN PHẨM NỔI BẬT (BÁN CHẠY NHẤT)
+// ===============================
+exports.getTopSellingProducts = (req, res) => {
+  console.log("🚀 Calling getTopSellingProducts...");
+  const sql = `
+    SELECT sp.*, SUM(ct.soluong) as total_sold
+    FROM sanpham sp
+    LEFT JOIN chitiet_donhang ct ON sp.ma_sp = ct.ma_sp
+    GROUP BY sp.ma_sp
+    ORDER BY total_sold DESC, sp.ma_sp DESC
+    LIMIT 10
+  `;
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("getTopSellingProducts error:", err);
+      return res.status(500).json({ error: "Lỗi server" });
+    }
+    res.json(results);
+  });
+};
+
+// ===============================
+// 🆕 LẤY SẢN PHẨM MỚI (VỪA NHẬP)
+// ===============================
+exports.getNewArrivals = (req, res) => {
+  console.log("🚀 Calling getNewArrivals...");
+  const sql = "SELECT * FROM sanpham ORDER BY created_at DESC LIMIT 10";
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("getNewArrivals error:", err);
+      return res.status(500).json({ error: "Lỗi server" });
+    }
+    res.json(results);
+  });
+};
+
+// ===============================
+// 🎁 LẤY SẢN PHẨM KHUYẾN MÃI (TỒN KHO > 1 TUẦN)
+// ===============================
+exports.getPromotionProducts = (req, res) => {
+  console.log("🚀 Calling getPromotionProducts...");
+  const sql = `
+    SELECT * FROM sanpham 
+    WHERE created_at < NOW() - INTERVAL 1 WEEK 
+    ORDER BY created_at ASC 
+    LIMIT 10
+  `;
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("getPromotionProducts error:", err);
+      return res.status(500).json({ error: "Lỗi server" });
+    }
+    res.json(results);
   });
 };
 

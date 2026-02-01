@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getAllBlog, addBlog, updateBlog, deleteBlog } from "../api/blog.js"; 
+import { getAllBlog, addBlog, updateBlog, deleteBlog } from "../api/blog.js";
 import { Container, Table, Button, Modal, Form, Alert, OverlayTrigger, Tooltip } from "react-bootstrap";
 
 function AdminBlog() {
@@ -132,10 +132,10 @@ function AdminBlog() {
                 <td>{blog.category}</td>
                 <td>
                   <img
-                    src={blog.img}
+                    src={blog.img?.startsWith("http") ? blog.img : `http://localhost:3001/uploads/${blog.img}`}
                     alt={blog.title}
                     style={{ width: "80px", height: "80px", objectFit: "cover", borderRadius: "8px" }}
-                    onError={(e) => (e.target.src = "/no-image.png")}
+                    onError={(e) => (e.target.src = "https://placehold.co/100x100?text=No+Image")}
                   />
                 </td>
                 <td>

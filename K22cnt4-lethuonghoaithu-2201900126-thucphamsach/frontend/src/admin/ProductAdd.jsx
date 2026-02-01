@@ -1,28 +1,87 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { addProduct } from "../api/adminProducts";
+import { getDanhMuc } from "../api/adminDanhMuc";
+import { getDonViTinh } from "../api/adminDonViTinh";
+import adminSupplierApi from "../api/adminSuppliers";
 import { useNavigate } from "react-router-dom";
 import { Form, Button, Alert, Card } from "react-bootstrap";
 
 function ProductAdd() {
   const navigate = useNavigate();
   const [error, setError] = useState("");
+  const [categories, setCategories] = useState([]);
+  const [units, setUnits] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
 
   const [form, setForm] = useState({
     ten_sp: "",
-    loai_sp: "",
-    mota: "",
-    gia: "",
+    ten_danhmuc: "",
+    ma_danhmuc: "",
+    ma_ncc: "",
+    ma_dvt: "",
+    hinhanh: null,
+    thongtin_sanpham: "",
+    gia: "", // Thêm trường giá mặc định
     soluong_ton: "",
-    ma_ncc: "NCC01",
-    ma_dvt: "DVT03",
-    hinhanh: null, // ⚠️ FILE
+    mota: "",
   });
+
+  const [selectedUnits, setSelectedUnits] = useState([]); // Array of { ma_dvt, gia, ten_dvt }
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [catData, unitData, supplierData] = await Promise.all([
+          getDanhMuc(),
+          getDonViTinh(),
+          adminSupplierApi.getAll()
+        ]);
+        setCategories(catData);
+        setUnits(unitData);
+        setSuppliers(supplierData.data || []);
+
+        if (unitData.length > 0) {
+          setForm(prev => ({ ...prev, ma_dvt: unitData[0].ma_dvt }));
+          // Tự động bỏ đơn vị cơ bản vào danh sách chọn (với giá mặc định sẽ được cập nhật sau)
+        }
+        if (catData.length > 0) {
+          setForm(prev => ({
+            ...prev,
+            ten_danhmuc: catData[0].ten_danhmuc,
+            ma_danhmuc: catData[0].ma_danhmuc
+          }));
+        }
+        if (supplierData.data?.length > 0) setForm(prev => ({ ...prev, ma_ncc: supplierData.data[0].ma_ncc }));
+      } catch (err) {
+        setError("Không thể tải danh mục, đơn vị tính hoặc nhà cung cấp");
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleUnitToggle = (unit) => {
+    const isSelected = selectedUnits.find(u => u.ma_dvt === unit.ma_dvt);
+    if (isSelected) {
+      setSelectedUnits(selectedUnits.filter(u => u.ma_dvt !== unit.ma_dvt));
+    } else {
+      setSelectedUnits([...selectedUnits, { ma_dvt: unit.ma_dvt, gia: "", ten_dvt: unit.ten_dvt }]);
+    }
+  };
+
+  const handleUnitPriceChange = (ma_dvt, price) => {
+    setSelectedUnits(selectedUnits.map(u =>
+      u.ma_dvt === ma_dvt ? { ...u, gia: price } : u
+    ));
+  };
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
 
     if (name === "hinhanh") {
       setForm({ ...form, hinhanh: files[0] });
+    } else if (name === "ma_danhmuc") {
+      const cat = categories.find(c => c.ma_danhmuc === value);
+      setForm({ ...form, ma_danhmuc: value, ten_danhmuc: cat?.ten_danhmuc || "" });
     } else {
       setForm({ ...form, [name]: value });
     }
@@ -33,7 +92,7 @@ function ProductAdd() {
     setError("");
 
     if (!form.ten_sp || !form.gia) {
-      setError("⚠️ Vui lòng nhập tên sản phẩm và giá");
+      setError("⚠️ Vui lòng nhập tên sản phẩm và giá mặc định");
       return;
     }
 
@@ -43,6 +102,10 @@ function ProductAdd() {
         fd.append(key, form[key]);
       }
     });
+
+    // 🚀 Đóng gói danh sách đơn vị tính bổ sung
+    const extraUnits = selectedUnits.filter(u => u.gia > 0);
+    fd.append("selectedUnits", JSON.stringify(extraUnits));
 
     try {
       await addProduct(fd);
@@ -55,60 +118,117 @@ function ProductAdd() {
 
   return (
     <Card className="p-4 shadow-sm">
-      <h3 className="mb-4 text-success">➕ Thêm sản phẩm</h3>
+      <h3 className="mb-4 text-success">➕ Thêm sản phẩm mới</h3>
 
       {error && <Alert variant="danger">{error}</Alert>}
 
       <Form onSubmit={handleSubmit} encType="multipart/form-data">
-        <Form.Group className="mb-3">
-          <Form.Label>Tên sản phẩm</Form.Label>
-          <Form.Control name="ten_sp" onChange={handleChange} required />
-        </Form.Group>
+        <div className="row">
+          <div className="col-md-6">
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold">Tên sản phẩm</Form.Label>
+              <Form.Control name="ten_sp" onChange={handleChange} required placeholder="Ví dụ: Tôm Hùm Canada" />
+            </Form.Group>
 
-        <Form.Group className="mb-3">
-          <Form.Label>Loại</Form.Label>
-          <Form.Control name="loai_sp" onChange={handleChange} />
-        </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold">Danh mục</Form.Label>
+              <Form.Select name="ma_danhmuc" value={form.ma_danhmuc} onChange={handleChange}>
+                {categories.map((c) => (
+                  <option key={c.ma_danhmuc} value={c.ma_danhmuc}>{c.ten_danhmuc}</option>
+                ))}
+              </Form.Select>
+            </Form.Group>
 
-        <Form.Group className="mb-3">
-          <Form.Label>Mô tả</Form.Label>
-          <Form.Control as="textarea" name="mota" onChange={handleChange} />
-        </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold">Nhà cung cấp</Form.Label>
+              <Form.Select name="ma_ncc" value={form.ma_ncc} onChange={handleChange}>
+                {suppliers.map((s) => (
+                  <option key={s.ma_ncc} value={s.ma_ncc}>{s.ten_ncc}</option>
+                ))}
+              </Form.Select>
+            </Form.Group>
 
-        <Form.Group className="mb-3">
-          <Form.Label>Giá</Form.Label>
-          <Form.Control type="number" name="gia" onChange={handleChange} required />
-        </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold">Đơn vị tính cơ bản (Chính)</Form.Label>
+              <Form.Select name="ma_dvt" value={form.ma_dvt} onChange={handleChange}>
+                {units.map((u) => (
+                  <option key={u.ma_dvt} value={u.ma_dvt}>{u.ten_dvt}</option>
+                ))}
+              </Form.Select>
+            </Form.Group>
 
-        <Form.Group className="mb-3">
-          <Form.Label>Số lượng tồn</Form.Label>
-          <Form.Control type="number" name="soluong_ton" onChange={handleChange} />
-        </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold">Giá mặc định (cho đơn vị chính)</Form.Label>
+              <Form.Control type="number" name="gia" onChange={handleChange} required placeholder="Nhập giá" />
+              <Form.Text className="text-muted italic">
+                💡 Hệ thống sẽ tự động lấy giá <b>thấp nhất</b> trong các đơn vị bạn chọn để làm giá hiển thị chính.
+              </Form.Text>
+            </Form.Group>
+          </div>
 
-        <Form.Group className="mb-3">
-          <Form.Label>Nhà cung cấp</Form.Label>
-          <Form.Select name="ma_ncc" onChange={handleChange}>
-            <option value="NCC01">HTX Rau sạch Hà Nội</option>
-            <option value="NCC02">Organic Đà Lạt</option>
-            <option value="NCC03">Thực phẩm Xanh</option>
-          </Form.Select>
-        </Form.Group>
+          <div className="col-md-6">
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold">Hình ảnh</Form.Label>
+              <Form.Control type="file" name="hinhanh" onChange={handleChange} />
+            </Form.Group>
 
-        <Form.Group className="mb-3">
-          <Form.Label>Đơn vị tính</Form.Label>
-          <Form.Select name="ma_dvt" onChange={handleChange}>
-            <option value="DVT01">Cái</option>
-            <option value="DVT03">Bó</option>
-            <option value="DVT04">Kg</option>
-          </Form.Select>
-        </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold">Số lượng tồn</Form.Label>
+              <Form.Control type="number" name="soluong_ton" onChange={handleChange} placeholder="0" />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold">Mô tả ngắn</Form.Label>
+              <Form.Control as="textarea" rows={3} name="mota" onChange={handleChange} />
+            </Form.Group>
+          </div>
+        </div>
 
         <Form.Group className="mb-4">
-          <Form.Label>Hình ảnh</Form.Label>
-          <Form.Control type="file" name="hinhanh" onChange={handleChange} />
+          <Form.Label className="fw-bold">Thông tin chi tiết sản phẩm</Form.Label>
+          <Form.Control as="textarea" rows={4} name="thongtin_sanpham" onChange={handleChange} />
         </Form.Group>
 
-        <Button type="submit" variant="success">💾 Lưu</Button>
+        {/* 🚀 CHỌN ĐA ĐƠN VỊ TÍNH */}
+        <div className="mb-4 p-3 border rounded bg-light">
+          <h5 className="text-secondary fw-bold mb-3">📍 Thiết lập tất cả các đơn vị tính</h5>
+          <p className="small text-muted mb-3">Tích chọn các đơn vị khác và nhập giá tương ứng nếu sản phẩm có nhiều cách bán (ví dụ: vừa bán theo Kg, vừa bán theo Thùng).</p>
+
+          <div className="row">
+            {units.map((u) => {
+              const selected = selectedUnits.find(su => su.ma_dvt === u.ma_dvt);
+              return (
+                <div key={u.ma_dvt} className="col-md-6 mb-3">
+                  <div className="d-flex align-items-center gap-3 p-2 border rounded bg-white">
+                    <Form.Check
+                      type="checkbox"
+                      id={`unit-${u.ma_dvt}`}
+                      label={u.ten_dvt}
+                      checked={!!selected}
+                      onChange={() => handleUnitToggle(u)}
+                      className="fw-bold"
+                    />
+                    {selected && (
+                      <Form.Control
+                        size="sm"
+                        type="number"
+                        placeholder="Nhập giá..."
+                        value={selected.gia}
+                        onChange={(e) => handleUnitPriceChange(u.ma_dvt, e.target.value)}
+                        style={{ width: "120px" }}
+                      />
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="d-flex gap-2">
+          <Button type="submit" variant="success" size="lg" className="px-5">💾 Lưu sản phẩm</Button>
+          <Button variant="secondary" size="lg" onClick={() => navigate("/admin/products")}>Hủy</Button>
+        </div>
       </Form>
     </Card>
   );

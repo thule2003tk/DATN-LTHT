@@ -70,6 +70,12 @@ export function CartProvider({ children }) {
     setCart((prev) => prev.filter((p) => p.ma_sp !== ma_sp));
   };
 
+  // 🔹 Xóa toàn bộ giỏ hàng
+  const clearCart = () => {
+    setCart([]);
+    localStorage.removeItem("cart");
+  };
+
   // 🔹 Tổng số lượng và tổng tiền
   const cartCount = cart.reduce((sum, p) => sum + p.quantity, 0);
   const totalPrice = cart.reduce(
@@ -84,6 +90,7 @@ export function CartProvider({ children }) {
         addToCart,
         updateCart,
         removeFromCart,
+        clearCart,
         cartCount,
         totalPrice,
       }}

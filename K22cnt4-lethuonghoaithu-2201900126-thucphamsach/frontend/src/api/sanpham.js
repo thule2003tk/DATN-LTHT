@@ -21,6 +21,39 @@ export const getAllSanPham = async () => {
   }
 };
 
+// 🔹 Lấy sản phẩm nổi bật (Bán chạy)
+export const getFeaturedProducts = async () => {
+  try {
+    const res = await axios.get(`${API_URL}/featured`);
+    return Array.isArray(res.data) ? res.data : [];
+  } catch (err) {
+    console.error("❌ Lỗi getFeaturedProducts:", err);
+    return [];
+  }
+};
+
+// 🔹 Lấy sản phẩm mới (Vừa nhập)
+export const getNewArrivals = async () => {
+  try {
+    const res = await axios.get(`${API_URL}/newest`);
+    return Array.isArray(res.data) ? res.data : [];
+  } catch (err) {
+    console.error("❌ Lỗi getNewArrivals:", err);
+    return [];
+  }
+};
+
+// 🔹 Lấy sản phẩm khuyến mãi (Tồn kho > 1 tuần)
+export const getPromotionProducts = async () => {
+  try {
+    const res = await axios.get(`${API_URL}/promotion`);
+    return Array.isArray(res.data) ? res.data : [];
+  } catch (err) {
+    console.error("❌ Lỗi getPromotionProducts:", err);
+    return [];
+  }
+};
+
 // 🔹 Lấy chi tiết sản phẩm theo mã (SP01, SP02, ...)
 export const getSanPhamById = async (ma_sp) => {
   if (!ma_sp) return null;

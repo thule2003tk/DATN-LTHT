@@ -42,6 +42,7 @@ app.use("/api/admin/products", require("./src/routes/admin.products"));
 app.use("/api/admin", require("./src/routes/admin.revenue"));
 app.use("/api/admin/donvitinh", require("./src/routes/admin.donvitinh"));
 app.use("/api/admin/donvisanpham", require("./src/routes/admin.donvisanpham"));
+app.use("/api/admin/suppliers", require("./src/routes/admin.suppliers"));
 /* ================= TEST ROOT ================= */
 app.get("/", (req, res) => {
   res.send("🚀 Backend đang chạy!");

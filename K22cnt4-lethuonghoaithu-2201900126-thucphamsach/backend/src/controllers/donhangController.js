@@ -3,7 +3,7 @@ const db = require("../config/db");
 // ========== TẠO ĐƠN HÀNG ==========
 exports.createDonHang = (req, res) => {
   const ma_kh = req.user.ma_nguoidung;
-  const { ma_km } = req.body;
+  const { ma_km, hoten_nhan, sdt_nhan, diachi_nhan, ghichu } = req.body;
 
   const sqlCart = `
     SELECT g.ma_sp, g.soluong, s.gia
@@ -22,33 +22,67 @@ exports.createDonHang = (req, res) => {
       0
     );
 
-    const insertDonHang = `
-      INSERT INTO donhang (ma_donhang, ma_kh, ngay_dat, tongtien, trangthai, ma_km)
-      VALUES (UUID_SHORT(), ?, NOW(), ?, 'Chờ xử lý', ?)
-    `;
+    // Hàm tạo mã ngẫu nhiên 10 ký tự
+    const generateId = () => Math.random().toString(36).substr(2, 10).toUpperCase();
 
-    db.query(insertDonHang, [ma_kh, tongtien, ma_km || null], (err2, result) => {
-      if (err2) return res.status(500).json(err2);
+    // KẾ HOẠCH ÁP DỤNG KHUYẾN MÃI
+    const applyPromoAndInsert = (discountPercent = 0) => {
+      const discountAmount = (tongtien * discountPercent) / 100;
+      const finalTotal = tongtien - discountAmount;
+      const ma_donhang = generateId();
 
-      const ma_donhang = result.insertId;
+      const insertDonHang = `
+        INSERT INTO donhang (ma_donhang, ma_kh, ngay_dat, tongtien, trangthai, ma_km, hoten_nhan, sdt_nhan, diachi_nhan, ghichu)
+        VALUES (?, ?, NOW(), ?, 'Chờ xử lý', ?, ?, ?, ?, ?)
+      `;
 
-      cartItems.forEach(item => {
-        db.query(
-          `INSERT INTO chitiet_donhang
-           (ma_ctdh, ma_donhang, ma_sp, soluong, dongia)
-           VALUES (UUID_SHORT(), ?, ?, ?, ?)`,
-          [ma_donhang, item.ma_sp, item.soluong, item.gia]
-        );
+      db.query(insertDonHang, [ma_donhang, ma_kh, finalTotal, ma_km || null, hoten_nhan, sdt_nhan, diachi_nhan, ghichu], (err2) => {
+        if (err2) {
+          console.error("Lỗi insert DonHang:", err2);
+          return res.status(500).json(err2);
+        }
+
+        cartItems.forEach(item => {
+          const ma_ctdh = generateId();
+          db.query(
+            `INSERT INTO chitiet_donhang
+             (ma_ctdh, ma_donhang, ma_sp, soluong, dongia)
+             VALUES (?, ?, ?, ?, ?)`,
+            [ma_ctdh, ma_donhang, item.ma_sp, item.soluong, item.gia],
+            (errDetail) => {
+              if (errDetail) console.error("Lỗi insert ChiTietDonHang:", errDetail);
+            }
+          );
+        });
+
+        db.query("DELETE FROM giohang WHERE ma_kh = ?", [ma_kh]);
+
+        res.json({
+          message: "Đặt hàng thành công",
+          ma_donhang,
+          tongtien: finalTotal
+        });
       });
+    };
 
-      db.query("DELETE FROM giohang WHERE ma_kh = ?", [ma_kh]);
+    if (ma_km) {
+      db.query("SELECT * FROM khuyenmai WHERE ma_km = ? AND trangthai = 'Đang áp dụng'", [ma_km], (err3, promoResults) => {
+        if (err3) return res.status(500).json(err3);
 
-      res.json({
-        message: "Đặt hàng thành công",
-        ma_donhang,
-        tongtien
+        if (promoResults.length > 0) {
+          const promo = promoResults[0];
+          if (tongtien >= promo.giatri_don) {
+            applyPromoAndInsert(promo.mucgiam);
+          } else {
+            return res.status(400).json({ message: `Đơn hàng tối thiểu ${promo.giatri_don}đ để áp dụng mã này.` });
+          }
+        } else {
+          return res.status(400).json({ message: "Mã khuyến mãi không tồn tại hoặc đã hết hạn." });
+        }
       });
-    });
+    } else {
+      applyPromoAndInsert(0);
+    }
   });
 };
 
@@ -79,11 +113,11 @@ exports.getAllDonHang = (req, res) => {
 // ========== ADMIN CẬP NHẬT ==========
 exports.updateTrangThai = (req, res) => {
   const { ma_donhang } = req.params;
-  const { trangthai } = req.body;
+  const { trangthai, ly_do_huy } = req.body;
 
   db.query(
-    "UPDATE donhang SET trangthai=? WHERE ma_donhang=?",
-    [trangthai, ma_donhang],
+    "UPDATE donhang SET trangthai=?, ly_do_huy=? WHERE ma_donhang=?",
+    [trangthai, ly_do_huy || null, ma_donhang],
     err => {
       if (err) return res.status(500).json(err);
       res.json({ message: "Cập nhật trạng thái thành công" });

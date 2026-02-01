@@ -32,12 +32,33 @@ const upload = multer({ storage, fileFilter });
 /* ================= ROUTES ================= */
 /* ========= PUBLIC ========= */
 
+console.log("🛠️  Registering SANPHAM public routes...");
+
+// ⭐ Sản phẩm nổi bật (Bán chạy)
+router.get("/featured", (req, res, next) => {
+  console.log("HIT: /api/sanpham/featured");
+  sanphamController.getTopSellingProducts(req, res, next);
+});
+
+// 🆕 Sản phẩm mới
+router.get("/newest", (req, res, next) => {
+  console.log("HIT: /api/sanpham/newest");
+  sanphamController.getNewArrivals(req, res, next);
+});
+
+// 🎁 Sản phẩm khuyến mãi
+router.get("/promotion", (req, res, next) => {
+  console.log("HIT: /api/sanpham/promotion");
+  sanphamController.getPromotionProducts(req, res, next);
+});
+
 // Test router
 router.get("/test", (req, res) => {
+  console.log("HIT: /api/sanpham/test");
   res.json({ ok: true });
 });
 
-// Danh sách sản phẩm
+// Danh sách sản phẩm (Tất cả)
 router.get("/", sanphamController.getAllSanPham);
 
 // 🔥 Đơn vị + giá theo sản phẩm

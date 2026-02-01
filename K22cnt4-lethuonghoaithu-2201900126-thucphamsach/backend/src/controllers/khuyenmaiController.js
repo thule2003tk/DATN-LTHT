@@ -2,7 +2,8 @@ const db = require("../config/db");
 
 // Lấy danh sách khuyến mãi
 exports.getKhuyenMai = (req, res) => {
-  const sql = "SELECT * FROM khuyenmai WHERE trangthai='Đang áp dụng'";
+  // Trả về tất cả để Admin quản lý, Khách sẽ thấy list đầy đủ hoặc lọc ở frontend
+  const sql = "SELECT * FROM khuyenmai ORDER BY ngay_ketthuc DESC";
   db.query(sql, (err, results) => {
     if (err) return res.status(500).json({ error: err });
     res.json(results);
@@ -12,10 +13,11 @@ exports.getKhuyenMai = (req, res) => {
 // Admin: tạo khuyến mãi mới
 exports.createKhuyenMai = (req, res) => {
   const { ten_km, mota, mucgiam, giatri_don, ngay_batdau, ngay_ketthuc, trangthai } = req.body;
+  const ma_km = Math.random().toString(36).substr(2, 10).toUpperCase();
   const sql = `INSERT INTO khuyenmai 
                (ma_km, ten_km, mota, mucgiam, giatri_don, ngay_batdau, ngay_ketthuc, trangthai)
-               VALUES (UUID_SHORT(), ?, ?, ?, ?, ?, ?, ?)`;
-  db.query(sql, [ten_km, mota, mucgiam, giatri_don, ngay_batdau, ngay_ketthuc, trangthai], (err) => {
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+  db.query(sql, [ma_km, ten_km, mota, mucgiam, giatri_don, ngay_batdau, ngay_ketthuc, trangthai], (err) => {
     if (err) return res.status(500).json({ error: err });
     res.json({ message: "Tạo khuyến mãi thành công" });
   });

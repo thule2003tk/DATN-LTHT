@@ -42,7 +42,7 @@ function ProductDetail() {
 
         setProduct(sp);
 
-        const donvi = await getDonViSanPhamByMaSP(id);        
+        const donvi = await getDonViSanPhamByMaSP(id);
         console.log("✅ DonVi:", donvi);
 
         setDonViList(donvi || []);
@@ -83,15 +83,22 @@ function ProductDetail() {
   const handleAddToCart = (goCheckout = false) => {
     if (!selectedDonVi) return;
 
-    addToCart({
+    const itemToAdd = {
       ...product,
       ma_dvt: selectedDonVi.ma_dvt,
       ten_dvt: selectedDonVi.ten_dvt,
       gia: selectedDonVi.gia,
-      so_luong: 1,
-    });
+      quantity: 1, // Đảm bảo dùng quantity đồng nhất với CartContext
+    };
 
-    navigate(goCheckout ? "/checkout" : "/cart");
+    if (goCheckout) {
+      // 🚀 Mua ngay: Không thêm vào giỏ hàng chung, truyền thẳng data qua state
+      navigate("/checkout", { state: { buyNowItem: itemToAdd } });
+    } else {
+      // Thêm vào giỏ bình thường
+      addToCart(itemToAdd);
+      navigate("/cart");
+    }
   };
 
   return (
@@ -156,7 +163,7 @@ function ProductDetail() {
               </Alert>
             )}
 
-            <p className="fs-5 text-muted mb-4">{product.mota}</p>
+            {/* Removed inline mota to move it above footer */}
 
             <div className="d-grid gap-3 d-md-flex">
               <Button
@@ -176,6 +183,38 @@ function ProductDetail() {
               >
                 Mua ngay
               </Button>
+            </div>
+          </Col>
+        </Row>
+
+        {/* ================= THÔNG TIN CHI TIẾT DƯỚI ĐÂY ================= */}
+        <hr className="my-5" />
+        <Row className="mb-5">
+          <Col md={6} className="mb-4 mb-md-0">
+            <div className="p-4 bg-light rounded shadow-sm h-100">
+              <h3 className="fw-bold text-success border-bottom pb-3 mb-3">
+                🌿 Mô tả sản phẩm
+              </h3>
+              <div
+                className="fs-5 text-muted"
+                style={{ whiteSpace: "pre-line", textAlign: "justify" }}
+              >
+                {product.mota || "Đang cập nhật nội dung..."}
+              </div>
+            </div>
+          </Col>
+
+          <Col md={6}>
+            <div className="p-4 bg-light rounded shadow-sm h-100">
+              <h3 className="fw-bold text-success border-bottom pb-3 mb-3">
+                🔍 Thông tin chi tiết
+              </h3>
+              <div
+                className="fs-5 text-muted"
+                style={{ whiteSpace: "pre-line", textAlign: "justify" }}
+              >
+                {product.thongtin_sanpham || "Đang cập nhật nội dung..."}
+              </div>
             </div>
           </Col>
         </Row>

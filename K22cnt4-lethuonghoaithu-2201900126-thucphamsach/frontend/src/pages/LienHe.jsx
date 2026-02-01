@@ -1,9 +1,42 @@
-import { Container, Row, Col, Form, Button, Card } from "react-bootstrap";
+import { useState } from "react";
+import { Container, Row, Col, Form, Button, Card, Alert } from "react-bootstrap";
 import { FaMapMarkerAlt, FaPhoneAlt, FaEnvelope, FaClock } from "react-icons/fa";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import lienHeApi from "../api/lienhe";
 
 export default function LienHe() {
+  const [formData, setFormData] = useState({
+    ten: "",
+    email: "",
+    noidung: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ type: "", text: "" });
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.ten || !formData.email || !formData.noidung) {
+      setMessage({ type: "danger", text: "Vui lòng điền đầy đủ thông tin!" });
+      return;
+    }
+    setLoading(true);
+    try {
+      await lienHeApi.createContact(formData);
+      setMessage({ type: "success", text: "Gửi liên hệ thành công! Chúng tôi sẽ phản hồi sớm nhất." });
+      setFormData({ ten: "", email: "", noidung: "" });
+    } catch (error) {
+      console.error("Error sending contact:", error);
+      setMessage({ type: "danger", text: "Có lỗi xảy ra, vui lòng thử lại sau." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <Header />
@@ -53,28 +86,35 @@ export default function LienHe() {
                   ✉️ GỬI LIÊN HỆ CHO CHÚNG TÔI
                 </h5>
 
-                <Form>
+                {message.text && (
+                  <Alert variant={message.type} onClose={() => setMessage({ type: "", text: "" })} dismissible>
+                    {message.text}
+                  </Alert>
+                )}
+
+                <Form onSubmit={handleSubmit}>
                   <Row>
                     <Col md={6} className="mb-3">
                       <Form.Label>Họ và tên</Form.Label>
-                      <Form.Control placeholder="Nhập họ tên" />
+                      <Form.Control
+                        name="ten"
+                        value={formData.ten}
+                        onChange={handleChange}
+                        placeholder="Nhập họ tên"
+                        required
+                      />
                     </Col>
 
                     <Col md={6} className="mb-3">
                       <Form.Label>Email</Form.Label>
-                      <Form.Control type="email" placeholder="example@email.com" />
-                    </Col>
-                  </Row>
-
-                  <Row>
-                    <Col md={6} className="mb-3">
-                      <Form.Label>Số điện thoại</Form.Label>
-                      <Form.Control placeholder="0909xxxxxx" />
-                    </Col>
-
-                    <Col md={6} className="mb-3">
-                      <Form.Label>Tiêu đề</Form.Label>
-                      <Form.Control placeholder="Tư vấn sản phẩm / Khiếu nại..." />
+                      <Form.Control
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        placeholder="example@email.com"
+                        required
+                      />
                     </Col>
                   </Row>
 
@@ -83,12 +123,16 @@ export default function LienHe() {
                     <Form.Control
                       as="textarea"
                       rows={4}
+                      name="noidung"
+                      value={formData.noidung}
+                      onChange={handleChange}
                       placeholder="Nội dung liên hệ..."
+                      required
                     />
                   </div>
 
-                  <Button variant="success" size="lg">
-                    Gửi liên hệ
+                  <Button variant="success" size="lg" type="submit" disabled={loading}>
+                    {loading ? "Đang gửi..." : "Gửi liên hệ"}
                   </Button>
                 </Form>
               </Card.Body>

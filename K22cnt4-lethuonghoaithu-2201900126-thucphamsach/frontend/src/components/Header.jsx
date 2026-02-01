@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   Container,
@@ -41,13 +42,32 @@ const DEFAULT_CATEGORIES = [
 
 function Header({
   searchTerm = "",
-  setSearchTerm = () => {},
-  categories = DEFAULT_CATEGORIES,
+  setSearchTerm = () => { },
 }) {
+  const [dynamicCategories, setDynamicCategories] = useState([]);
   const { user, logout } = useAuth();
   const { cartCount } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    const fetchCats = async () => {
+      try {
+        const { getDanhMuc } = await import("../api/danhmuc");
+        const data = await getDanhMuc();
+        setDynamicCategories(data);
+      } catch (err) {
+        console.error("Header Category Load Error:", err);
+      }
+    };
+    fetchCats();
+  }, []);
+
+  const categories = dynamicCategories.map(c => ({
+    title: c.ten_danhmuc,
+    query: c.ma_danhmuc,
+    icon: <FaSeedling /> // Default icon
+  }));
 
   /* SEARCH */
   const handleSearch = (e) => {

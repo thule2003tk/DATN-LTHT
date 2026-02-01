@@ -18,3 +18,8 @@ export const updateDonViSanPham = async (id, data) => {
 export const deleteDonViSanPham = async (id) => {
     return axios.delete(`${API}/${id}`);
 };
+
+export const getDonViSanPhamByMaSP = async (ma_sp) => {
+    const res = await axios.get(`${API}/sanpham/${ma_sp}`);
+    return res.data;
+};

@@ -34,7 +34,7 @@ export const AuthProvider = ({ children }) => {
         const rawUser = res.user || res;
 
         // Normalize: tự động lấy ma_kh dù tên trường khác nhau
-        const ma_kh = rawUser.ma_kh || rawUser.id || rawUser.maKh || rawUser.customer_id || rawUser.ma_khach_hang || null;
+        const ma_kh = rawUser.ma_kh || rawUser.ma_nguoidung || rawUser.id || rawUser.maKh || rawUser.customer_id || rawUser.ma_khach_hang || null;
 
         const normalizedUser = {
           ...rawUser,
@@ -59,7 +59,8 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const logout = () => {
-    localStorage.clear();
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
     setUser(null);
     window.location.href = "/login";
   };
