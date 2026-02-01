@@ -23,3 +23,13 @@ export const updateUserRole = async (id, vai_tro) => {
   );
   return res.data;
 };
+
+// Admin chặn / mở chặn
+export const updateUserStatus = async (id, status) => {
+  const res = await axios.put(
+    `${API_URL}/${id}/status`,
+    { status },
+    authHeader()
+  );
+  return res.data;
+};

@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { Table, Button, Alert } from "react-bootstrap";
-import { getUsers, updateUserRole } from "../api/adminUsers";
+import { Table, Button, Alert, Badge } from "react-bootstrap";
+import { getUsers, updateUserRole, updateUserStatus } from "../api/adminUsers";
 import { useAuth } from "../context/AuthContext";
+import { FaUserSlash, FaUserCheck } from "react-icons/fa";
 
 function Users() {
-  const { user } = useAuth();
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [error, setError] = useState("");
 
@@ -23,60 +24,95 @@ function Users() {
 
   const handleRoleChange = async (id, role) => {
     if (!window.confirm("Xác nhận đổi quyền?")) return;
+    try {
+      await updateUserRole(id, role);
+      fetchUsers();
+    } catch (err) {
+      alert("Lỗi: " + (err.response?.data?.error || "Không thể đổi quyền"));
+    }
+  };
 
-    await updateUserRole(id, role);
-    fetchUsers();
+  const handleToggleStatus = async (user) => {
+    const newStatus = user.status === "blocked" ? "active" : "blocked";
+    const msg = newStatus === "blocked" ? "CHẶN" : "MỞ CHẶN";
+
+    if (!window.confirm(`Xác nhận ${msg} người dùng ${user.ten_dangnhap}?`)) return;
+
+    try {
+      await updateUserStatus(user.ma_nguoidung, newStatus);
+      fetchUsers();
+    } catch (err) {
+      alert("Lỗi: " + (err.response?.data?.error || "Không thể cập nhật trạng thái"));
+    }
   };
 
   return (
     <div>
-      <h2 className="text-success mb-4">Quản lý người dùng</h2>
+      <h2 className="text-success mb-4">🏠 Quản lý người dùng</h2>
 
       {error && <Alert variant="danger">{error}</Alert>}
 
-      <Table bordered hover>
-        <thead className="table-success">
-          <tr>
-            <th>#</th>
-            <th>Tên đăng nhập</th>
-            <th>Email</th>
-            <th>Vai trò</th>
-            <th>Duyệt</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((u, i) => (
-            <tr key={u.ma_nguoidung}>
-              <td>{i + 1}</td>
-              <td>{u.ten_dangnhap}</td>
-              <td>{u.email}</td>
-              <td>
-                <b>{u.vai_tro}</b>
-              </td>
-              <td>
-                {user.vai_tro === "admin" && u.vai_tro === "customer" && (
-                  <Button
-                    size="sm"
-                    onClick={() => handleRoleChange(u.ma_nguoidung, "staff")}
-                  >
-                    Duyệt Staff
-                  </Button>
-                )}
-
-                {user.vai_tro === "admin" && u.vai_tro === "staff" && (
-                  <Button
-                    size="sm"
-                    variant="warning"
-                    onClick={() => handleRoleChange(u.ma_nguoidung, "customer")}
-                  >
-                    Hạ quyền
-                  </Button>
-                )}
-              </td>
+      <div className="bg-white rounded shadow-sm overflow-hidden">
+        <Table hover responsive className="mb-0">
+          <thead className="table-success">
+            <tr>
+              <th>#</th>
+              <th>Tên đăng nhập</th>
+              <th>Email</th>
+              <th>Vai trò</th>
+              <th>Trạng thái</th>
+              <th>Thao tác</th>
             </tr>
-          ))}
-        </tbody>
-      </Table>
+          </thead>
+          <tbody>
+            {users.map((u, i) => (
+              <tr key={u.ma_nguoidung} className={u.status === "blocked" ? "table-light opacity-75" : ""}>
+                <td>{i + 1}</td>
+                <td>{u.ten_dangnhap}</td>
+                <td>{u.email}</td>
+                <td>
+                  <Badge bg={u.vai_tro === "admin" ? "danger" : u.vai_tro === "staff" ? "warning" : "info"} text={u.vai_tro === "staff" ? "dark" : "white"}>
+                    {u.vai_tro.toUpperCase()}
+                  </Badge>
+                </td>
+                <td>
+                  <Badge bg={u.status === "blocked" ? "danger" : "success"}>
+                    {u.status === "blocked" ? "Đã chặn" : "Hoạt động"}
+                  </Badge>
+                </td>
+                <td>
+                  <div className="d-flex gap-2">
+                    {/* Admin mới được đổi Role và Block */}
+                    {currentUser.vai_tro === "admin" && u.ma_nguoidung !== currentUser.ma_nguoidung && (
+                      <>
+                        {u.vai_tro === "customer" ? (
+                          <Button size="sm" variant="outline-success" onClick={() => handleRoleChange(u.ma_nguoidung, "staff")}>
+                            Duyệt Staff
+                          </Button>
+                        ) : u.vai_tro === "staff" ? (
+                          <Button size="sm" variant="outline-warning" onClick={() => handleRoleChange(u.ma_nguoidung, "customer")}>
+                            Hạ quyền
+                          </Button>
+                        ) : null}
+
+                        <Button
+                          size="sm"
+                          variant={u.status === "blocked" ? "success" : "danger"}
+                          onClick={() => handleToggleStatus(u)}
+                          title={u.status === "blocked" ? "Mở chặn" : "Chặn tài khoản"}
+                        >
+                          {u.status === "blocked" ? <FaUserCheck /> : <FaUserSlash />}
+                        </Button>
+                      </>
+                    )}
+                    {u.ma_nguoidung === currentUser.ma_nguoidung && <small className="text-muted italic">Đang online</small>}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      </div>
     </div>
   );
 }
