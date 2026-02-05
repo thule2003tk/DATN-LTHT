@@ -4,13 +4,24 @@ const db = require("../config/db");
 // LẤY TẤT CẢ SẢN PHẨM
 // ===============================
 exports.getAllSanPham = (req, res) => {
-  const sql = "SELECT * FROM sanpham";
+  const sql = `
+    SELECT sp.*, d.ten_danhmuc as ten_dm_chinh, GROUP_CONCAT(sd.ma_danhmuc) as danhmuc_ids
+    FROM sanpham sp
+    LEFT JOIN danhmuc d ON sp.ma_danhmuc = d.ma_danhmuc
+    LEFT JOIN sanpham_danhmuc sd ON sp.ma_sp = sd.ma_sp
+    GROUP BY sp.ma_sp
+  `;
   db.query(sql, (err, results) => {
     if (err) {
       console.error("getAllSanPham error:", err);
       return res.status(500).json({ error: "Lỗi server" });
     }
-    res.json(results);
+    // Parse danhmuc_ids into array
+    const data = results.map(r => ({
+      ...r,
+      danhmuc_ids: r.danhmuc_ids ? r.danhmuc_ids.split(',') : (r.ma_danhmuc ? [r.ma_danhmuc] : [])
+    }));
+    res.json(data);
   });
 };
 
@@ -20,7 +31,13 @@ exports.getAllSanPham = (req, res) => {
 exports.getSanPhamByMa = (req, res) => {
   const { ma_sp } = req.params;
 
-  const sql = "SELECT * FROM sanpham WHERE ma_sp = ?";
+  const sql = `
+    SELECT sp.*, GROUP_CONCAT(sd.ma_danhmuc) as danhmuc_ids
+    FROM sanpham sp
+    LEFT JOIN sanpham_danhmuc sd ON sp.ma_sp = sd.ma_sp
+    WHERE sp.ma_sp = ?
+    GROUP BY sp.ma_sp
+  `;
   db.query(sql, [ma_sp], (err, results) => {
     if (err) {
       console.error("getSanPhamByMa error:", err);
@@ -29,7 +46,11 @@ exports.getSanPhamByMa = (req, res) => {
     if (results.length === 0) {
       return res.status(404).json({ error: "Không tìm thấy sản phẩm" });
     }
-    res.json(results[0]);
+    const product = {
+      ...results[0],
+      danhmuc_ids: results[0].danhmuc_ids ? results[0].danhmuc_ids.split(',') : (results[0].ma_danhmuc ? [results[0].ma_danhmuc] : [])
+    };
+    res.json(product);
   });
 };
 
@@ -66,20 +87,20 @@ exports.getDonViTheoSanPham = (req, res) => {
 // TẠO SẢN PHẨM (CÓ UPLOAD ẢNH)
 // ===============================
 exports.createSanPham = (req, res) => {
-  const { ten_sp, ten_danhmuc, mota, gia, soluong_ton, ma_ncc, ma_dvt, thongtin_sanpham } = req.body;
+  const { ten_sp, ten_danhmuc, ma_danhmuc, mota, gia, soluong_ton, ma_ncc, ma_dvt, thongtin_sanpham, is_featured } = req.body;
 
   const hinhanh = req.file ? req.file.filename : null;
   const ma_sp = "SP" + Date.now();
 
   const sql = `
     INSERT INTO sanpham 
-    (ma_sp, ten_sp, ten_danhmuc, mota, gia, soluong_ton, ma_ncc, hinhanh, ma_dvt, thongtin_sanpham)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (ma_sp, ten_sp, ten_danhmuc, ma_danhmuc, mota, gia, soluong_ton, ma_ncc, hinhanh, ma_dvt, thongtin_sanpham, is_featured)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   db.query(
     sql,
-    [ma_sp, ten_sp, ten_danhmuc, mota, gia, soluong_ton, ma_ncc, hinhanh, ma_dvt, thongtin_sanpham],
+    [ma_sp, ten_sp, ten_danhmuc, ma_danhmuc, mota, gia, soluong_ton, ma_ncc, hinhanh, ma_dvt, thongtin_sanpham, is_featured || 0],
     (err) => {
       if (err) {
         console.error("createSanPham error:", err);
@@ -98,22 +119,24 @@ exports.createSanPham = (req, res) => {
 // CẬP NHẬT SẢN PHẨM
 // ===============================
 exports.updateSanPham = (req, res) => {
-  const { ten_sp, ten_danhmuc, mota, gia, soluong_ton, ma_ncc, ma_dvt, thongtin_sanpham } = req.body;
+  const { ten_sp, ten_danhmuc, ma_danhmuc, mota, gia, soluong_ton, ma_ncc, ma_dvt, thongtin_sanpham, is_featured } = req.body;
   const hinhanh = req.file ? req.file.filename : null;
 
   let sql = `
     UPDATE sanpham 
-    SET ten_sp=?, ten_danhmuc=?, mota=?, gia=?, soluong_ton=?, ma_ncc=?, ma_dvt=?, thongtin_sanpham=?
+    SET ten_sp=?, ten_danhmuc=?, ma_danhmuc=?, mota=?, gia=?, soluong_ton=?, ma_ncc=?, ma_dvt=?, thongtin_sanpham=?, is_featured=?
   `;
   const params = [
     ten_sp,
     ten_danhmuc,
+    ma_danhmuc,
     mota,
     gia,
     soluong_ton,
     ma_ncc,
     ma_dvt,
     thongtin_sanpham,
+    is_featured,
   ];
 
   if (hinhanh) {
@@ -139,11 +162,13 @@ exports.updateSanPham = (req, res) => {
 exports.getTopSellingProducts = (req, res) => {
   console.log("🚀 Calling getTopSellingProducts...");
   const sql = `
-    SELECT sp.*, SUM(ct.soluong) as total_sold
+    SELECT sp.*, d.ten_danhmuc as ten_dm_chinh, GROUP_CONCAT(sd.ma_danhmuc) as danhmuc_ids
     FROM sanpham sp
-    LEFT JOIN chitiet_donhang ct ON sp.ma_sp = ct.ma_sp
+    LEFT JOIN danhmuc d ON sp.ma_danhmuc = d.ma_danhmuc
+    LEFT JOIN sanpham_danhmuc sd ON sp.ma_sp = sd.ma_sp
+    WHERE sp.is_featured = 1
     GROUP BY sp.ma_sp
-    ORDER BY total_sold DESC, sp.ma_sp DESC
+    ORDER BY sp.created_at DESC, sp.ma_sp DESC
     LIMIT 10
   `;
   db.query(sql, (err, results) => {
@@ -151,7 +176,11 @@ exports.getTopSellingProducts = (req, res) => {
       console.error("getTopSellingProducts error:", err);
       return res.status(500).json({ error: "Lỗi server" });
     }
-    res.json(results);
+    const data = results.map(r => ({
+      ...r,
+      danhmuc_ids: r.danhmuc_ids ? r.danhmuc_ids.split(',') : (r.ma_danhmuc ? [r.ma_danhmuc] : [])
+    }));
+    res.json(data);
   });
 };
 
@@ -160,13 +189,24 @@ exports.getTopSellingProducts = (req, res) => {
 // ===============================
 exports.getNewArrivals = (req, res) => {
   console.log("🚀 Calling getNewArrivals...");
-  const sql = "SELECT * FROM sanpham ORDER BY created_at DESC LIMIT 10";
+  const sql = `
+    SELECT sp.*, d.ten_danhmuc as ten_dm_chinh, GROUP_CONCAT(sd.ma_danhmuc) as danhmuc_ids
+    FROM sanpham sp 
+    LEFT JOIN danhmuc d ON sp.ma_danhmuc = d.ma_danhmuc 
+    LEFT JOIN sanpham_danhmuc sd ON sp.ma_sp = sd.ma_sp
+    GROUP BY sp.ma_sp
+    ORDER BY sp.created_at DESC LIMIT 12
+  `;
   db.query(sql, (err, results) => {
     if (err) {
       console.error("getNewArrivals error:", err);
       return res.status(500).json({ error: "Lỗi server" });
     }
-    res.json(results);
+    const data = results.map(r => ({
+      ...r,
+      danhmuc_ids: r.danhmuc_ids ? r.danhmuc_ids.split(',') : (r.ma_danhmuc ? [r.ma_danhmuc] : [])
+    }));
+    res.json(data);
   });
 };
 
@@ -176,9 +216,13 @@ exports.getNewArrivals = (req, res) => {
 exports.getPromotionProducts = (req, res) => {
   console.log("🚀 Calling getPromotionProducts...");
   const sql = `
-    SELECT * FROM sanpham 
-    WHERE created_at < NOW() - INTERVAL 1 WEEK 
-    ORDER BY created_at ASC 
+    SELECT sp.*, d.ten_danhmuc as ten_dm_chinh, GROUP_CONCAT(sd.ma_danhmuc) as danhmuc_ids
+    FROM sanpham sp 
+    LEFT JOIN danhmuc d ON sp.ma_danhmuc = d.ma_danhmuc 
+    LEFT JOIN sanpham_danhmuc sd ON sp.ma_sp = sd.ma_sp
+    WHERE sp.phan_tram_giam_gia > 0 OR sp.created_at < NOW() - INTERVAL 1 WEEK 
+    GROUP BY sp.ma_sp
+    ORDER BY sp.phan_tram_giam_gia DESC, sp.created_at ASC 
     LIMIT 10
   `;
   db.query(sql, (err, results) => {
@@ -186,7 +230,11 @@ exports.getPromotionProducts = (req, res) => {
       console.error("getPromotionProducts error:", err);
       return res.status(500).json({ error: "Lỗi server" });
     }
-    res.json(results);
+    const data = results.map(r => ({
+      ...r,
+      danhmuc_ids: r.danhmuc_ids ? r.danhmuc_ids.split(',') : (r.ma_danhmuc ? [r.ma_danhmuc] : [])
+    }));
+    res.json(data);
   });
 };
 

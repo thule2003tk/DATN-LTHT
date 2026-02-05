@@ -124,46 +124,54 @@ function AdminDashboard() {
       {/* Stats Cards */}
       <Row className="mb-4">
         <Col md={3}>
-          <Card className="border-0 shadow-sm rounded-4 bg-primary text-white p-3">
+          <Card className="border-0 shadow-sm rounded-4 text-white p-3 h-100" style={{ background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}>
             <div className="d-flex justify-content-between align-items-center">
               <div>
-                <p className="mb-0 small opacity-75">TỔNG DOANH THU</p>
-                <h3 className="fw-bold mb-0">{Number(summary.totalRevenue || 0).toLocaleString()}₫</h3>
+                <p className="mb-1 small opacity-75 fw-bold">TỔNG DOANH THU</p>
+                <h3 className="fw-bold mb-0" style={{ fontSize: "1.5rem" }}>{Number(summary.totalRevenue || 0).toLocaleString()}₫</h3>
               </div>
-              <FaMoneyBillWave size={40} className="opacity-50" />
+              <div className="bg-white bg-opacity-25 rounded-circle p-3">
+                <FaMoneyBillWave size={24} />
+              </div>
             </div>
           </Card>
         </Col>
         <Col md={3}>
-          <Card className="border-0 shadow-sm rounded-4 bg-success text-white p-3">
+          <Card className="border-0 shadow-sm rounded-4 text-white p-3 h-100" style={{ background: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)" }}>
             <div className="d-flex justify-content-between align-items-center">
               <div>
-                <p className="mb-0 small opacity-75">TỔNG ĐƠN HÀNG</p>
-                <h3 className="fw-bold mb-0">{summary.totalOrders}</h3>
+                <p className="mb-1 small opacity-75 fw-bold">TỔNG ĐƠN HÀNG</p>
+                <h3 className="fw-bold mb-0" style={{ fontSize: "1.5rem" }}>{summary.totalOrders}</h3>
               </div>
-              <FaShoppingBag size={40} className="opacity-50" />
+              <div className="bg-white bg-opacity-25 rounded-circle p-3">
+                <FaShoppingBag size={24} />
+              </div>
             </div>
           </Card>
         </Col>
         <Col md={3}>
-          <Card className="border-0 shadow-sm rounded-4 bg-warning text-white p-3">
+          <Card className="border-0 shadow-sm rounded-4 text-white p-3 h-100" style={{ background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)" }}>
             <div className="d-flex justify-content-between align-items-center">
               <div>
-                <p className="mb-0 small opacity-75">KHÁCH HÀNG</p>
-                <h3 className="fw-bold mb-0">{summary.totalCustomers}</h3>
+                <p className="mb-1 small opacity-75 fw-bold">KHÁCH HÀNG</p>
+                <h3 className="fw-bold mb-0" style={{ fontSize: "1.5rem" }}>{summary.totalCustomers}</h3>
               </div>
-              <FaUsers size={40} className="opacity-50" />
+              <div className="bg-white bg-opacity-25 rounded-circle p-3">
+                <FaUsers size={24} />
+              </div>
             </div>
           </Card>
         </Col>
         <Col md={3}>
-          <Card className="border-0 shadow-sm rounded-4 bg-info text-white p-3">
+          <Card className="border-0 shadow-sm rounded-4 text-white p-3 h-100" style={{ background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)" }}>
             <div className="d-flex justify-content-between align-items-center">
               <div>
-                <p className="mb-0 small opacity-75">SẢN PHẨM</p>
-                <h3 className="fw-bold mb-0">{summary.totalProducts}</h3>
+                <p className="mb-1 small opacity-75 fw-bold">SẢN PHẨM</p>
+                <h3 className="fw-bold mb-0" style={{ fontSize: "1.5rem" }}>{summary.totalProducts}</h3>
               </div>
-              <FaBoxOpen size={40} className="opacity-50" />
+              <div className="bg-white bg-opacity-25 rounded-circle p-3">
+                <FaBoxOpen size={24} />
+              </div>
             </div>
           </Card>
         </Col>
@@ -221,7 +229,16 @@ function AdminDashboard() {
                   responsive: true,
                   maintainAspectRatio: false,
                   indexAxis: 'y', // Biểu đồ cột ngang
-                  plugins: { legend: { display: false } }
+                  plugins: { legend: { display: false } },
+                  scales: {
+                    x: {
+                      beginAtZero: true,
+                      ticks: {
+                        stepSize: 1,
+                        precision: 0
+                      }
+                    }
+                  }
                 }}
               />
             </div>

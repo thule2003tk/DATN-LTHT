@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Table, Button, Modal, Form, Badge, Spinner, Row, Col } from "react-bootstrap";
+import { Table, Button, Modal, Form, Badge, Spinner, Row, Col, InputGroup } from "react-bootstrap";
 import { FaPlus, FaEdit, FaTrash, FaIndustry } from "react-icons/fa";
 import adminSupplierApi from "../api/adminSuppliers";
 
@@ -8,6 +8,7 @@ function AdminSuppliers() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState({
     ma_ncc: "",
     ten_ncc: "",
@@ -31,6 +32,12 @@ function AdminSuppliers() {
       setLoading(false);
     }
   };
+
+  const filteredSuppliers = suppliers.filter(s =>
+    s.ten_ncc.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.ma_ncc.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.diachi || "").toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleOpenModal = (supplier = null) => {
     if (supplier) {
@@ -87,10 +94,25 @@ function AdminSuppliers() {
   return (
     <div className="container-fluid">
       <div className="d-flex justify-content-between align-items-center mb-4 text-dark">
-        <h2 className="text-success fw-bold"><FaIndustry /> Quản lý Nhà cung cấp</h2>
-        <Button variant="success" onClick={() => handleOpenModal()}>
-          <FaPlus /> Thêm NCC mới
-        </Button>
+        <h2 className="text-success fw-bold mb-0"><FaIndustry /> Quản lý Nhà cung cấp</h2>
+
+        <div className="d-flex gap-3 align-items-center">
+          <InputGroup style={{ maxWidth: "300px" }}>
+            <InputGroup.Text className="bg-white border-end-0 text-success">
+              🔍
+            </InputGroup.Text>
+            <Form.Control
+              placeholder="Tìm tên, mã, địa chỉ..."
+              className="border-start-0 shadow-none border-success-subtle"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </InputGroup>
+
+          <Button variant="success" onClick={() => handleOpenModal()}>
+            <FaPlus /> Thêm NCC mới
+          </Button>
+        </div>
       </div>
 
       <div className="card border-0 shadow-sm rounded-4">
@@ -107,7 +129,7 @@ function AdminSuppliers() {
               </tr>
             </thead>
             <tbody>
-              {suppliers.map((s) => (
+              {filteredSuppliers.map((s) => (
                 <tr key={s.ma_ncc}>
                   <td className="py-3 px-4">
                     <div className="d-flex align-items-center gap-2">
@@ -131,10 +153,10 @@ function AdminSuppliers() {
                   </td>
                 </tr>
               ))}
-              {suppliers.length === 0 && (
+              {filteredSuppliers.length === 0 && (
                 <tr>
-                  <td colSpan="6" className="text-center py-5 text-muted">
-                    Chưa có nhà cung cấp nào.
+                  <td colSpan="6" className="text-center py-5">
+                    <div className="text-muted fs-5">🔍 Không tìm thấy nhà cung cấp nào phù hợp</div>
                   </td>
                 </tr>
               )}

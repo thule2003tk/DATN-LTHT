@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { getAllBlog, addBlog, updateBlog, deleteBlog } from "../api/blog.js";
-import { Container, Table, Button, Modal, Form, Alert, OverlayTrigger, Tooltip } from "react-bootstrap";
+import { Container, Table, Button, Modal, Form, Alert, OverlayTrigger, Tooltip, InputGroup } from "react-bootstrap";
 
 function AdminBlog() {
   const [blogs, setBlogs] = useState([]);
@@ -17,6 +17,7 @@ function AdminBlog() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     fetchBlogs();
@@ -39,6 +40,11 @@ function AdminBlog() {
       setLoading(false);
     }
   };
+
+  const filteredBlogs = blogs.filter(b =>
+    (b.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (b.category || "").toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -88,22 +94,38 @@ function AdminBlog() {
 
   return (
     <Container>
-      <h1 className="my-4">Quản Lý Blog</h1>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h1 className="mb-0">Quản Lý Blog</h1>
 
-      <Button variant="success" onClick={() => {
-        setEditingBlog(null);
-        setFormData({
-          title: "",
-          img: "",
-          desc1: "",
-          desc2: "",
-          category: "monan",
-          content: "",
-        });
-        setShowModal(true);
-      }}>
-        Thêm Blog Mới
-      </Button>
+        <div className="d-flex gap-3 align-items-center">
+          <InputGroup style={{ maxWidth: "300px" }}>
+            <InputGroup.Text className="bg-white border-end-0 text-success">
+              🔍
+            </InputGroup.Text>
+            <Form.Control
+              placeholder="Tìm tên bài viết hoặc danh mục..."
+              className="border-start-0 shadow-none border-success-subtle"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </InputGroup>
+
+          <Button variant="success" onClick={() => {
+            setEditingBlog(null);
+            setFormData({
+              title: "",
+              img: "",
+              desc1: "",
+              desc2: "",
+              category: "monan",
+              content: "",
+            });
+            setShowModal(true);
+          }}>
+            Thêm Blog Mới
+          </Button>
+        </div>
+      </div>
 
       {loading && <p className="mt-3 text-center">Đang tải danh sách blog...</p>}
       {fetchError && <Alert variant="danger" className="mt-3">{fetchError}</Alert>}
@@ -119,14 +141,14 @@ function AdminBlog() {
           </tr>
         </thead>
         <tbody>
-          {blogs.length === 0 && !loading ? (
+          {filteredBlogs.length === 0 && !loading ? (
             <tr>
-              <td colSpan="5" className="text-center text-muted">
-                Chưa có bài viết nào. Hãy thêm mới!
+              <td colSpan="5" className="text-center py-5">
+                <div className="text-muted fs-5">🔍 Không tìm thấy bài viết nào phù hợp</div>
               </td>
             </tr>
           ) : (
-            blogs.map((blog) => (
+            filteredBlogs.map((blog) => (
               <tr key={blog.id}>
                 <td>{blog.title || "Chưa có tiêu đề"}</td>
                 <td>{blog.category}</td>

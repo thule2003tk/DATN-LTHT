@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Table, Button, Modal, Form, Badge, Spinner } from "react-bootstrap";
+import { Table, Button, Modal, Form, Badge, Spinner, InputGroup } from "react-bootstrap";
 import { FaReply, FaTrash } from "react-icons/fa";
 import lienHeApi from "../api/lienhe";
 
@@ -10,6 +10,7 @@ function AdminContacts() {
   const [currentContact, setCurrentContact] = useState(null);
   const [replyText, setReplyText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     fetchContacts();
@@ -26,6 +27,12 @@ function AdminContacts() {
       setLoading(false);
     }
   };
+
+  const filteredContacts = contacts.filter(c =>
+    c.ten.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (c.noidung || "").toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleOpenReply = (contact) => {
     setCurrentContact(contact);
@@ -72,10 +79,25 @@ function AdminContacts() {
   return (
     <div className="container-fluid">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="text-success fw-bold">Quản lý liên hệ</h2>
-        <Button variant="outline-success" onClick={fetchContacts}>
-          Tải lại danh sách
-        </Button>
+        <h2 className="text-success fw-bold mb-0">Quản lý liên hệ</h2>
+
+        <div className="d-flex gap-3 align-items-center">
+          <InputGroup style={{ maxWidth: "300px" }}>
+            <InputGroup.Text className="bg-white border-end-0 text-success">
+              🔍
+            </InputGroup.Text>
+            <Form.Control
+              placeholder="Tìm tên, email, nội dung..."
+              className="border-start-0 shadow-none border-success-subtle"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </InputGroup>
+
+          <Button variant="outline-success" onClick={fetchContacts}>
+            Tải lại
+          </Button>
+        </div>
       </div>
 
       <div className="card border-0 shadow-sm">
@@ -92,8 +114,8 @@ function AdminContacts() {
               </tr>
             </thead>
             <tbody>
-              {contacts.length > 0 ? (
-                contacts.map((contact, index) => (
+              {filteredContacts.length > 0 ? (
+                filteredContacts.map((contact, index) => (
                   <tr key={contact.id}>
                     <td>{index + 1}</td>
                     <td><span className="fw-bold">{contact.ten}</span></td>
@@ -127,8 +149,8 @@ function AdminContacts() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" className="text-center py-4 text-muted">
-                    Chưa có liên hệ nào.
+                  <td colSpan="6" className="text-center py-5">
+                    <div className="text-muted fs-5">🔍 Không tìm thấy liên hệ nào phù hợp</div>
                   </td>
                 </tr>
               )}

@@ -40,15 +40,26 @@ const DEFAULT_CATEGORIES = [
   { title: "Chế Biến", query: "che-bien", icon: <FaPepperHot /> },
 ];
 
+import { getCategoryIcon } from "../utils/iconHelper";
+
 function Header({
   searchTerm = "",
   setSearchTerm = () => { },
 }) {
   const [dynamicCategories, setDynamicCategories] = useState([]);
+  const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
+  const [showProducts, setShowProducts] = useState(false);
+  const [showUser, setShowUser] = useState(false);
+
   const { user, logout } = useAuth();
   const { cartCount } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Đồng bộ local state khi prop searchTerm thay đổi
+  useEffect(() => {
+    setLocalSearchTerm(searchTerm);
+  }, [searchTerm]);
 
   useEffect(() => {
     const fetchCats = async () => {
@@ -66,14 +77,17 @@ function Header({
   const categories = dynamicCategories.map(c => ({
     title: c.ten_danhmuc,
     query: c.ma_danhmuc,
-    icon: <FaSeedling /> // Default icon
+    icon: getCategoryIcon(c.icon, c.ten_danhmuc)
   }));
 
   /* SEARCH */
   const handleSearch = (e) => {
     e.preventDefault();
-    if (searchTerm.trim()) {
-      navigate(`/products?search=${encodeURIComponent(searchTerm)}`);
+    const term = localSearchTerm.trim();
+    if (term) {
+      navigate(`/products?search=${encodeURIComponent(term)}`);
+    } else {
+      navigate(`/products`); // Nếu rỗng thì xem tất cả
     }
   };
 
@@ -103,8 +117,11 @@ function Header({
               <Form.Control
                 type="search"
                 placeholder="Tìm rau củ, thịt, trái cây sạch..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={localSearchTerm}
+                onChange={(e) => {
+                  setLocalSearchTerm(e.target.value);
+                  setSearchTerm(e.target.value); // Cập nhật cho component cha nếu có (như trang Products)
+                }}
               />
               <Button variant="success" type="submit">
                 <FaSearch />
@@ -117,6 +134,9 @@ function Header({
             {user ? (
               <NavDropdown
                 align="end"
+                show={showUser}
+                onMouseEnter={() => setShowUser(true)}
+                onMouseLeave={() => setShowUser(false)}
                 title={
                   <span className="fw-semibold d-flex align-items-center gap-2">
                     <FaUser />
@@ -181,12 +201,27 @@ function Header({
           <Navbar.Toggle />
           <Navbar.Collapse>
             <Nav className="mx-auto menu-links">
-              <Nav.Link as={Link} to="/" active={isActive("/")}>
+              <Nav.Link
+                as={Link}
+                to="/"
+                active={isActive("/")}
+                onClick={(e) => {
+                  if (location.pathname === "/") {
+                    e.preventDefault();
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  } else {
+                    // Let react-router handle the navigation, ScrollToTop will handle the scroll
+                  }
+                }}
+              >
                 <FaHome className="me-2" />
                 Trang Chủ
               </Nav.Link>
 
               <NavDropdown
+                show={showProducts}
+                onMouseEnter={() => setShowProducts(true)}
+                onMouseLeave={() => setShowProducts(false)}
                 title={
                   <>
                     <FaLeaf className="me-2" />
@@ -207,7 +242,7 @@ function Header({
                 ))}
               </NavDropdown>
 
-              <Nav.Link as={Link} to="/tin-tuc">
+              <Nav.Link as={Link} to="/tin-tuc" active={isActive("/tin-tuc")}>
                 <FaNewspaper className="me-2" />
                 Tin Tức
               </Nav.Link>

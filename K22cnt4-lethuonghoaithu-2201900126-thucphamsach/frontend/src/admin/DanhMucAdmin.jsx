@@ -1,13 +1,17 @@
 import { useEffect, useState } from "react";
-import { Table, Button, Spinner, Alert, Modal, Form } from "react-bootstrap";
+import { Table, Button, Spinner, Alert, Modal, Form, InputGroup } from "react-bootstrap";
 import { getDanhMuc, addDanhMuc, updateDanhMuc, deleteDanhMuc } from "../api/adminDanhMuc";
 import { useAuth } from "../context/AuthContext";
+
+import { getCategoryIcon, ICON_SUGGESTIONS } from "../utils/iconHelper";
+
 
 function DanhMucAdmin() {
     const { user } = useAuth();
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [searchTerm, setSearchTerm] = useState("");
 
     // Modal state
     const [showModal, setShowModal] = useState(false);
@@ -31,8 +35,13 @@ function DanhMucAdmin() {
         fetchCategories();
     }, []);
 
+    const filteredCategories = categories.filter(c =>
+        c.ten_danhmuc.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.ma_danhmuc.toString().toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     const handleShowModal = (category = { ma_danhmuc: "", ten_danhmuc: "", icon: "" }) => {
-        setCurrentCategory(category);        
+        setCurrentCategory(category);
         setEditMode(!!category.ma_danhmuc);
         setShowModal(true);
     };
@@ -52,7 +61,7 @@ function DanhMucAdmin() {
             } else {
                 await addDanhMuc(currentCategory);
                 alert("Thêm thành công!");
-            }            
+            }
             handleCloseModal();
             fetchCategories();
         } catch (err) {
@@ -76,12 +85,27 @@ function DanhMucAdmin() {
     return (
         <div className="container-fluid">
             <div className="d-flex justify-content-between align-items-center mb-4">
-                <h2 className="text-success">Quản lý danh mục</h2>
-                {user.vai_tro === "admin" && (
-                    <Button variant="success" onClick={() => handleShowModal()}>
-                        + Thêm danh mục
-                    </Button>
-                )}
+                <h2 className="text-success mb-0">Quản lý danh mục</h2>
+
+                <div className="d-flex gap-3 align-items-center">
+                    <InputGroup style={{ maxWidth: "250px" }}>
+                        <InputGroup.Text className="bg-white border-end-0 text-success">
+                            🔍
+                        </InputGroup.Text>
+                        <Form.Control
+                            placeholder="Tìm tên hoặc mã..."
+                            className="border-start-0 shadow-none border-success-subtle"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </InputGroup>
+
+                    {user.vai_tro === "admin" && (
+                        <Button variant="success" onClick={() => handleShowModal()}>
+                            + Thêm danh mục
+                        </Button>
+                    )}
+                </div>
             </div>
 
             {error && <Alert variant="danger">{error}</Alert>}
@@ -97,17 +121,21 @@ function DanhMucAdmin() {
                     </tr>
                 </thead>
                 <tbody>
-                    {categories.length === 0 ? (
+                    {filteredCategories.length === 0 ? (
                         <tr>
-                            <td colSpan="5" className="text-center">Chưa có danh mục nào</td>
+                            <td colSpan="5" className="text-center py-5">
+                                <div className="text-muted fs-5">🔍 Không tìm thấy danh mục nào phù hợp</div>
+                            </td>
                         </tr>
                     ) : (
-                        categories.map((c, index) => (
+                        filteredCategories.map((c, index) => (
                             <tr key={c.ma_danhmuc}>
                                 <td>{index + 1}</td>
                                 <td>{c.ma_danhmuc}</td>
                                 <td>{c.ten_danhmuc}</td>
-                                <td style={{ fontSize: "1.2rem" }}>{c.icon || "N/A"}</td>
+                                <td style={{ fontSize: "1.2rem" }} className="text-success">
+                                    {getCategoryIcon(c.icon, c.ten_danhmuc)}
+                                </td>
                                 <td>
                                     <Button
                                         size="sm"
@@ -151,13 +179,47 @@ function DanhMucAdmin() {
                             />
                         </Form.Group>
                         <Form.Group className="mb-3">
-                            <Form.Label>Icon (Emoji hoặc Class name)</Form.Label>
-                            <Form.Control
-                                type="text"
-                                placeholder="Ví dụ: 🥦 hoặc fa-leaf"
-                                value={currentCategory.icon}
-                                onChange={(e) => setCurrentCategory({ ...currentCategory, icon: e.target.value })}
-                            />
+                            <Form.Label className="fw-bold">Icon (Emoji hoặc Class name)</Form.Label>
+                            <InputGroup>
+                                <InputGroup.Text className="bg-white" style={{ fontSize: '1.2rem' }}>
+                                    {getCategoryIcon(currentCategory.icon, currentCategory.ten_danhmuc)}
+                                </InputGroup.Text>
+                                <Form.Control
+                                    type="text"
+                                    placeholder="Ví dụ: 🥦 hoặc fa-leaf"
+                                    value={currentCategory.icon}
+                                    onChange={(e) => setCurrentCategory({ ...currentCategory, icon: e.target.value })}
+                                />
+                            </InputGroup>
+
+                            {/* ICON PICKER QUICK SELECT */}
+                            <div className="mt-3 p-3 bg-light rounded-3 border">
+                                <small className="text-muted mb-2 d-block fw-bold">Gợi ý Icon nhanh:</small>
+                                <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
+                                    {ICON_SUGGESTIONS.map((group) => (
+                                        <div key={group.label} className="mb-2">
+                                            <div className="text-dark x-small fw-bold opacity-75 mb-1" style={{ fontSize: '0.7rem', textTransform: 'uppercase' }}>
+                                                {group.label}
+                                            </div>
+                                            <div className="d-flex flex-wrap gap-2">
+                                                {group.icons.map((icon) => (
+                                                    <Button
+                                                        key={icon}
+                                                        variant="white"
+                                                        size="sm"
+                                                        className={`border p-2 shadow-sm d-flex align-items-center justify-content-center ${currentCategory.icon === icon ? 'bg-success text-white' : 'bg-white'}`}
+                                                        style={{ width: '40px', height: '40px', fontSize: '1.2rem' }}
+                                                        onClick={() => setCurrentCategory({ ...currentCategory, icon: icon })}
+                                                        type="button"
+                                                    >
+                                                        {icon}
+                                                    </Button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </Form.Group>
                     </Modal.Body>
                     <Modal.Footer>

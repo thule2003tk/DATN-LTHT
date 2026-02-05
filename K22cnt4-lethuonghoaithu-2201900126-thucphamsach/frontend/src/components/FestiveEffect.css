@@ -1,0 +1,116 @@
+.tet-bg-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: -1;
+    /* Chìm hoàn toàn xuống dưới sản phẩm */
+    overflow: hidden;
+}
+
+.tet-fg-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 200px;
+    /* Chỉ cần vùng trên đầu cho lồng đèn */
+    pointer-events: none;
+    z-index: 9999;
+    /* Luôn nổi lên trên */
+    overflow: visible;
+}
+
+/* Cánh hoa rơi */
+.petal {
+    position: absolute;
+    background-color: #ffb7c5;
+    /* Hồng đào */
+    border-radius: 150% 0 150% 0;
+    opacity: 0.8;
+    animation: fall linear infinite;
+}
+
+.petal.apricot {
+    background-color: #ffd700;
+    /* Vàng mai */
+    border-radius: 50%;
+}
+
+@keyframes fall {
+    0% {
+        transform: translateY(-10vh) translateX(0) rotate(0deg);
+    }
+
+    100% {
+        transform: translateY(110vh) translateX(100px) rotate(360deg);
+    }
+}
+
+/* Lồng đèn trang trí góc */
+.festive-lantern {
+    position: fixed;
+    top: -10px;
+    width: 45px;
+    height: 60px;
+    background: #d40000;
+    border-radius: 30% 30% 40% 40%;
+    box-shadow: 0 0 20px rgba(212, 0, 0, 0.5);
+    animation: swing 3s ease-in-out infinite alternate;
+    transform-origin: top center;
+    z-index: 9999;
+}
+
+.festive-lantern::before {
+    content: "";
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    height: 20px;
+    background: #333;
+}
+
+.festive-lantern::after {
+    content: "福";
+    /* Chữ Phúc */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #ffd700;
+    font-weight: bold;
+    font-size: 24px;
+}
+
+.lantern-left {
+    left: 20px;
+}
+
+.lantern-right {
+    right: 20px;
+}
+
+@keyframes swing {
+    0% {
+        transform: rotate(-5deg);
+    }
+
+    100% {
+        transform: rotate(5deg);
+    }
+}
+
+/* Dây tua rua lồng đèn */
+.tassel {
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 10px;
+    height: 30px;
+    background: #ffd700;
+}

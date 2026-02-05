@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Table, Button, Spinner, Alert, Image } from "react-bootstrap";
+import { Table, Button, Spinner, Alert, Image, Badge } from "react-bootstrap";
 import { getProducts, deleteProduct } from "../api/adminProducts";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import ProductUnitsModal from "./ProductUnitsModal";
+import { FaExclamationTriangle, FaStar } from "react-icons/fa";
 
 function AdminProducts() {
   const { user } = useAuth();
@@ -12,9 +13,12 @@ function AdminProducts() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
 
   const [showUnitModal, setShowUnitModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState({ ma_sp: "", ten_sp: "" });
+  const location = useLocation();
 
   const fetchProducts = async () => {
     try {
@@ -27,9 +31,22 @@ function AdminProducts() {
     }
   };
 
+  const filteredProducts = products.filter(p => {
+    const matchSearch = p.ten_sp.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchCat = filterCategory === "" || p.ma_danhmuc === filterCategory;
+    return matchSearch && matchCat;
+  });
+
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  // Sync search from URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const s = params.get("search");
+    if (s !== null) setSearchTerm(s);
+  }, [location.search]);
 
   const handleDelete = async (id) => {
     if (!window.confirm("Bạn có chắc muốn xoá sản phẩm này?")) return;
@@ -55,12 +72,37 @@ function AdminProducts() {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="text-success">Quản lý sản phẩm</h2>
 
-        {/* ADMIN mới được thêm */}
-        {user.vai_tro === "admin" && (
-          <Button onClick={() => navigate("/admin/products/add")}>
-            + Thêm sản phẩm
-          </Button>
-        )}
+        <div className="d-flex gap-2">
+          <div className="position-relative">
+            <input
+              type="text"
+              className="form-control ps-5"
+              placeholder="Tìm theo tên..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ minWidth: "250px" }}
+            />
+            <span className="position-absolute top-50 start-0 translate-middle-y ps-3">🔍</span>
+          </div>
+
+          <select
+            className="form-select"
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+            style={{ width: "180px" }}
+          >
+            <option value="">Lọc theo danh mục</option>
+            {[...new Set(products.map(p => ({ id: p.ma_danhmuc, name: p.ten_danhmuc })))].filter((v, i, a) => a.findIndex(t => (t.id === v.id)) === i).map(cat => (
+              cat.id && <option key={cat.id} value={cat.id}>{cat.name}</option>
+            ))}
+          </select>
+
+          {user.vai_tro !== "customer" && (
+            <Button onClick={() => navigate("/admin/products/add")} variant="success">
+              + Thêm sản phẩm
+            </Button>
+          )}
+        </div>
       </div>
 
       <Table bordered hover>
@@ -71,20 +113,22 @@ function AdminProducts() {
             <th>Tên sản phẩm</th>
             <th>Danh mục</th>
             <th>Giá mặc định</th>
+            <th>Giảm giá</th>
             <th>Tồn kho</th>
+            <th>Nổi bật</th>
             <th>Hành động</th>
           </tr>
         </thead>
         <tbody>
-          {products.length === 0 && (
+          {filteredProducts.length === 0 && (
             <tr>
-              <td colSpan="7" className="text-center">
-                Chưa có sản phẩm
+              <td colSpan="9" className="text-center py-5">
+                <div className="text-muted fs-5">🔍 Không tìm thấy sản phẩm nào phù hợp</div>
               </td>
             </tr>
           )}
 
-          {products.map((p, index) => (
+          {filteredProducts.map((p, index) => (
             <tr key={p.ma_sp}>
               <td>{index + 1}</td>
               <td>
@@ -103,7 +147,30 @@ function AdminProducts() {
               <td>{p.ten_sp}</td>
               <td>{p.ten_danhmuc || "Chưa phân loại"}</td>
               <td>{Number(p.gia).toLocaleString()} đ</td>
+              <td>
+                <div className="d-flex flex-column gap-1">
+                  {p.phan_tram_giam_gia > 0 ? (
+                    <Badge bg="danger">-{p.phan_tram_giam_gia}%</Badge>
+                  ) : (
+                    <span className="text-muted">0%</span>
+                  )}
+
+                  {/* Cảnh báo nếu nhập > 7 ngày mà chưa giảm */}
+                  {p.created_at && (Date.now() - new Date(p.created_at)) > 7 * 24 * 60 * 60 * 1000 && Number(p.phan_tram_giam_gia) === 0 && (
+                    <Badge bg="warning" text="dark" className="d-flex align-items-center gap-1">
+                      <FaExclamationTriangle size={10} /> Cần giảm giá
+                    </Badge>
+                  )}
+                </div>
+              </td>
               <td>{p.soluong_ton}</td>
+              <td className="text-center">
+                {p.is_featured === 1 ? (
+                  <FaStar className="text-warning" title="Sản phẩm nổi bật" />
+                ) : (
+                  <span className="text-muted">-</span>
+                )}
+              </td>
               <td>
                 {/* Admin + Member đều xem/sửa */}
                 <Button
@@ -140,10 +207,10 @@ function AdminProducts() {
         ten_sp={selectedProduct.ten_sp}
       />
 
-      {/* Member bị chặn quyền */}
-      {user.vai_tro === "member" && (
+      {/* Nhân viên bị giới hạn quyền xóa */}
+      {user.vai_tro !== "admin" && (
         <Alert variant="info" className="mt-3">
-          Bạn đang đăng nhập với quyền <b>Member</b> – không thể xoá sản phẩm
+          Bạn đang đăng nhập với quyền <b>{user.vai_tro}</b> – chỉ Admin mới có quyền xóa dữ liệu.
         </Alert>
       )}
     </div>

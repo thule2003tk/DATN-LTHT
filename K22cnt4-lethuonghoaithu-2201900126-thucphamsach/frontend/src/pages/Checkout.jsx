@@ -11,6 +11,7 @@ import {
   Spinner,
   Form,
   Modal,
+  Badge,
 } from "react-bootstrap";
 import { FaHome, FaShoppingCart } from "react-icons/fa";
 import { useCart } from "../context/CartContext.jsx";
@@ -34,17 +35,6 @@ const createOrder = async (orderData, token) => {
   return data;
 };
 
-const thanhToanDonHang = async (ma_donhang, phuongthuc, sotien) => {
-  const res = await fetch("http://localhost:3001/api/donhang/thanhtoan", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ma_donhang, phuongthuc, sotien }),
-  });
-
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Lỗi thanh toán");
-  return data;
-};
 
 /* ================= COMPONENT ================= */
 function Checkout() {
@@ -66,16 +56,30 @@ function Checkout() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const [maDonHang, setMaDonHang] = useState(null);
-  const [orderPlaced, setOrderPlaced] = useState(false);
+  const [maDonHang] = useState(() => "DH" + Date.now().toString() + Math.floor(100 + Math.random() * 900));
   const [phuongthuc, setPhuongthuc] = useState("COD");
+  const [maBiMat] = useState(() => Math.random().toString(36).substr(2, 10).toUpperCase());
 
   const [shipping, setShipping] = useState({
     hoten: user?.hoten || "",
-    sdt: "",
-    diachi: "",
+    sdt: user?.sodienthoai || user?.sdt || "",
+    email: user?.email || "",
+    diachi: user?.diachi || "",
     ghichu: "",
   });
+
+  // 🔄 Tự động cập nhật thông tin giao hàng khi dữ liệu user sẵn sàng
+  useEffect(() => {
+    if (user) {
+      setShipping(prev => ({
+        ...prev,
+        hoten: prev.hoten || user.hoten || "",
+        sdt: prev.sdt || user.sodienthoai || user.sdt || "",
+        email: prev.email || user.email || "",
+        diachi: prev.diachi || user.diachi || "",
+      }));
+    }
+  }, [user]);
 
   /* ===== PROMO STATE ===== */
   const [promos, setPromos] = useState([]);
@@ -92,7 +96,7 @@ function Checkout() {
 
   const fetchPromos = async () => {
     try {
-      const res = await khuyenMaiApi.getActivePromos();
+      const res = await khuyenMaiApi.getMinePromos();
       setPromos(res.data || []);
     } catch (err) {
       console.error("Error fetching promos:", err);
@@ -110,7 +114,7 @@ function Checkout() {
       return;
     }
 
-    if (totalPrice < promo.giatri_don) {
+    if (displayTotalPrice < promo.giatri_don) {
       setError(`❌ Mã này chỉ áp dụng cho đơn hàng từ ${Number(promo.giatri_don).toLocaleString()}₫`);
       setSelectedPromo(null);
       setDiscountAmount(0);
@@ -118,7 +122,7 @@ function Checkout() {
     }
 
     setSelectedPromo(promo);
-    const discount = (totalPrice * promo.mucgiam) / 100;
+    const discount = (displayTotalPrice * promo.mucgiam) / 100;
     setDiscountAmount(discount);
     setError("");
     setSuccess(`✅ Đã áp dụng mã ${promo.ma_km} (Giảm ${promo.mucgiam}%)`);
@@ -147,13 +151,14 @@ function Checkout() {
       return;
     }
 
+    // 🛡️ Xác nhận trước khi đặt hàng
+    const isConfirmed = window.confirm("Bạn có chắc chắn muốn đặt hàng không?");
+    if (!isConfirmed) return;
+
     setLoading(true);
 
     try {
-      // 🔍 Lấy ID: ma_kh, ma_nguoidung hoặc id
       const userId = user.ma_kh || user.ma_nguoidung || user.id;
-
-      console.log("🚀 Bắt đầu đặt hàng cho User ID:", userId);
 
       const orderData = {
         ma_kh: userId,
@@ -161,60 +166,34 @@ function Checkout() {
         phuongthuc,
         hoten_nhan: shipping.hoten,
         sdt_nhan: shipping.sdt,
+        email_nhan: shipping.email,
         diachi_nhan: shipping.diachi,
         ghichu: shipping.ghichu,
-        ma_km: String(selectedPromo?.ma_km).length <= 10 ? selectedPromo?.ma_km : null, // Fix chiều dài ma_km
+        ma_km: String(selectedPromo?.ma_km).length <= 10 ? selectedPromo?.ma_km : null,
+        ma_bi_mat: maBiMat,
+        ma_donhang: maDonHang,
         items: displayCart.map((i) => ({
           ma_sp: i.ma_sp,
           soluong: i.quantity,
           dongia: Number(i.gia),
         })),
+        isBuyNow: !!buyNowItem,
       };
 
       const result = await createOrder(orderData, token);
 
-      if (phuongthuc === "Chuyển khoản") {
-        // Nếu chuyển khoản, chuyển sang trang ThanhToan chuyên dụng
-        navigate("/thanhtoan", {
-          state: {
-            ma_donhang: result.ma_donhang,
-            tongtien: totalPrice - discountAmount
-          }
-        });
-      } else {
-        setMaDonHang(result.ma_donhang);
-        setOrderPlaced(true);
-        setSuccess(`✅ Đặt hàng thành công! Đang chuyển đến lịch sử đơn hàng...`);
-
-        // 🔄 Tự động chuyển hướng sau 2 giây
-        setTimeout(() => {
-          navigate("/orders");
-        }, 2000);
-      }
+      setSuccess(`✅ Đặt hàng thành công! Đang chuyển đến lịch sử đơn hàng...`);
 
       // 🔄 Chỉ xóa giỏ hàng nếu đây là thanh toán cả giỏ
       if (!buyNowItem) {
         clearCart();
       }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  /* ================= THANH TOÁN ================= */
-  const handleThanhToan = async () => {
-    if (!maDonHang) return;
+      // 🔄 Tự động chuyển hướng sau 1.5 giây
+      setTimeout(() => {
+        navigate("/orders");
+      }, 1500);
 
-    setLoading(true);
-    setError("");
-
-    try {
-      await thanhToanDonHang(maDonHang, phuongthuc, totalPrice - discountAmount);
-      setSuccess("🎉 Thanh toán thành công!");
-
-      setTimeout(() => navigate("/orders"), 1500);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -243,6 +222,7 @@ function Checkout() {
               <Table responsive className="align-middle">
                 <thead>
                   <tr className="text-muted small text-uppercase">
+                    <th style={{ width: "80px" }}>Ảnh</th>
                     <th>Sản phẩm</th>
                     <th>Giá</th>
                     <th>Số lượng</th>
@@ -250,18 +230,112 @@ function Checkout() {
                   </tr>
                 </thead>
                 <tbody>
-                  {displayCart.map((i) => (
-                    <tr key={i.ma_sp}>
-                      <td className="fw-bold">{i.ten_sp}</td>
-                      <td>{i.gia.toLocaleString()}₫</td>
-                      <td>{i.quantity}</td>
-                      <td className="text-end fw-bold">
-                        {(i.gia * i.quantity).toLocaleString()}₫
-                      </td>
-                    </tr>
-                  ))}
+                  {displayCart.map((i) => {
+                    const originalPrice = i.original_gia || i.gia;
+                    const discountPercent = i.phan_tram_giam_gia || 0;
+                    const isDiscounted = discountPercent > 0;
+                    const imgUrl = i.hinhanh?.startsWith("http")
+                      ? i.hinhanh
+                      : `http://localhost:3001/uploads/${i.hinhanh}`;
+
+                    return (
+                      <tr key={i.ma_sp}>
+                        <td>
+                          <img
+                            src={imgUrl}
+                            alt={i.ten_sp}
+                            className="rounded-3 border shadow-sm"
+                            style={{ width: "60px", height: "60px", objectFit: "cover" }}
+                            onError={(e) => (e.target.src = "/no-image.jpg")}
+                          />
+                        </td>
+                        <td>
+                          <div className="fw-bold">{i.ten_sp}</div>
+                          {isDiscounted && (
+                            <Badge bg="danger" className="small">-{discountPercent}%</Badge>
+                          )}
+                        </td>
+                        <td>
+                          {isDiscounted ? (
+                            <div className="d-flex flex-column">
+                              <span className="text-danger fw-bold">{Number(i.gia).toLocaleString()}₫</span>
+                              <small className="text-muted text-decoration-line-through">{Number(originalPrice).toLocaleString()}₫</small>
+                            </div>
+                          ) : (
+                            <span>{Number(i.gia).toLocaleString()}₫</span>
+                          )}
+                        </td>
+                        <td>{i.quantity}</td>
+                        <td className="text-end fw-bold">
+                          {(i.gia * i.quantity).toLocaleString()}₫
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </Table>
+            </Card.Body>
+          </Card>
+
+          {/* ===== MÃ GIẢM GIÁ (Moved here) ===== */}
+          <Card className="border-0 shadow-sm rounded-4 mb-4">
+            <Card.Body className="p-4">
+              <h5 className="fw-bold mb-4 text-success d-flex align-items-center">
+                <span className="me-2">🎟️</span> Mã giảm giá
+              </h5>
+
+              {/* Hiển thị thông báo ngay tại đây thay vì trên cùng */}
+              {error && error.includes("giảm giá") && (
+                <Alert variant="danger" dismissible onClose={() => setError("")} className="small py-2 mb-3">
+                  {error}
+                </Alert>
+              )}
+              {success && success.includes("áp dụng mã") && (
+                <Alert variant="success" dismissible onClose={() => setSuccess("")} className="small py-2 mb-3">
+                  {success}
+                </Alert>
+              )}
+
+              {!selectedPromo ? (
+                <div className="d-flex gap-2 mb-3">
+                  <Form.Control
+                    placeholder="Nhập mã KM..."
+                    value={promoCodeInput}
+                    onChange={(e) => setPromoCodeInput(e.target.value)}
+                    className="bg-light border-0"
+                  />
+                  <Button variant="success" onClick={() => handleApplyPromo()}>
+                    Áp dụng
+                  </Button>
+                </div>
+              ) : (
+                <div className="bg-light p-3 rounded-3 d-flex justify-content-between align-items-center mb-3 border border-success border-opacity-25">
+                  <div>
+                    <div className="small text-muted mb-1">Mã đang áp dụng:</div>
+                    <div className="fw-bold text-success fs-5">{selectedPromo.ma_km}</div>
+                    <small className="text-muted">Đã giảm {selectedPromo.mucgiam}% vào tổng đơn</small>
+                  </div>
+                  <Button
+                    variant="outline-danger"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedPromo(null);
+                      setDiscountAmount(0);
+                      setSuccess("");
+                    }}
+                  >
+                    Gỡ mã
+                  </Button>
+                </div>
+              )}
+
+              <Button
+                variant="link"
+                className="p-0 text-success text-decoration-none small"
+                onClick={() => setShowPromoModal(true)}
+              >
+                Xem danh sách mã khuyến mãi ?
+              </Button>
             </Card.Body>
           </Card>
 
@@ -289,15 +363,24 @@ function Checkout() {
                 </Col>
                 <Col md={6}>
                   <Form.Group className="mb-3">
-                    <Form.Label className="small fw-bold">Địa chỉ nhận hàng</Form.Label>
+                    <Form.Label className="small fw-bold">Email người nhận</Form.Label>
                     <Form.Control
-                      placeholder="Số nhà, tên đường, phường/xã..."
-                      value={shipping.diachi}
-                      onChange={(e) => setShipping({ ...shipping, diachi: e.target.value })}
+                      type="email"
+                      placeholder="Email để nhận thông báo"
+                      value={shipping.email}
+                      onChange={(e) => setShipping({ ...shipping, email: e.target.value })}
                     />
                   </Form.Group>
                 </Col>
               </Row>
+              <Form.Group className="mb-3">
+                <Form.Label className="small fw-bold">Địa chỉ nhận hàng</Form.Label>
+                <Form.Control
+                  placeholder="Số nhà, tên đường, phường/xã..."
+                  value={shipping.diachi}
+                  onChange={(e) => setShipping({ ...shipping, diachi: e.target.value })}
+                />
+              </Form.Group>
               <Form.Group>
                 <Form.Label className="small fw-bold">Ghi chú (nếu có)</Form.Label>
                 <Form.Control
@@ -314,30 +397,6 @@ function Checkout() {
 
         {/* ===== PHẢI ===== */}
         <Col lg={4}>
-          <Card className="border-0 shadow-sm rounded-4 mb-4">
-            <Card.Body className="p-4">
-              <h5 className="fw-bold mb-4 text-success">🎟️ Mã giảm giá</h5>
-              <div className="d-flex gap-2 mb-3">
-                <Form.Control
-                  placeholder="Nhập mã KM..."
-                  value={promoCodeInput}
-                  onChange={(e) => setPromoCodeInput(e.target.value)}
-                  className="bg-light border-0"
-                />
-                <Button variant="success" onClick={() => handleApplyPromo()}>
-                  Áp dụng
-                </Button>
-              </div>
-              <Button
-                variant="link"
-                className="p-0 text-success text-decoration-none small"
-                onClick={() => setShowPromoModal(true)}
-              >
-                Xem danh sách mã khuyến mãi ?
-              </Button>
-            </Card.Body>
-          </Card>
-
           <Card className="border-0 shadow-sm rounded-4 sticky-top" style={{ top: "20px" }}>
             <Card.Body className="p-4">
               <h5 className="fw-bold mb-4">💰 Tóm tắt thanh toán</h5>
@@ -362,81 +421,81 @@ function Checkout() {
                   <h5 className="fw-bold mb-3 d-flex align-items-center">
                     <span className="me-2">💳</span> Phương thức thanh toán
                   </h5>
-                  <div className="d-flex flex-column gap-2">
+                  <div className="d-flex flex-column gap-3">
                     <Form.Check
                       type="radio"
                       id="payment-cod"
-                      label="Thanh toán khi nhận hàng (COD)"
+                      label={
+                        <div className="d-flex align-items-center">
+                          <span className="me-2">🚚</span>
+                          <div>
+                            <div className="fw-bold">Thanh toán khi nhận hàng (COD)</div>
+                            <small className="text-muted">Thanh toán bằng tiền mặt khi giao hàng</small>
+                          </div>
+                        </div>
+                      }
                       name="paymentMethod"
                       value="COD"
                       checked={phuongthuc === "COD"}
                       onChange={(e) => setPhuongthuc(e.target.value)}
-                      disabled={orderPlaced}
+                      className="p-3 border rounded-3 border-2"
+                      style={{ transition: "0.3s", cursor: "pointer", borderColor: phuongthuc === "COD" ? "#198754" : "#dee2e6" }}
                     />
                     <Form.Check
                       type="radio"
                       id="payment-bank"
-                      label="Chuyển khoản ngân hàng (QR)"
+                      label={
+                        <div className="d-flex align-items-center">
+                          <span className="me-2">🏦</span>
+                          <div>
+                            <div className="fw-bold">Chuyển khoản ngân hàng (QR)</div>
+                            <small className="text-muted">Quét mã QR để thanh toán nhanh chóng</small>
+                          </div>
+                        </div>
+                      }
                       name="paymentMethod"
                       value="Chuyển khoản"
                       checked={phuongthuc === "Chuyển khoản"}
                       onChange={(e) => setPhuongthuc(e.target.value)}
-                      disabled={orderPlaced}
+                      className="p-3 border rounded-3 border-2"
+                      style={{ transition: "0.3s", cursor: "pointer", borderColor: phuongthuc === "Chuyển khoản" ? "#198754" : "#dee2e6" }}
                     />
                   </div>
+
+                  {phuongthuc === "Chuyển khoản" && (
+                    <div className="mt-4 p-3 bg-light rounded-3 border border-success border-opacity-25 text-center">
+                      <p className="mb-2 fw-bold text-success">📸 Mã QR Thanh Toán Dự Kiến</p>
+                      <div className="bg-white p-2 rounded mb-3 d-inline-block shadow-sm">
+                        <img
+                          src={`https://img.vietqr.io/image/MB-0916761528-compact.png?amount=${displayTotalPrice - discountAmount}&addInfo=THANH TOAN ${maDonHang} ${maBiMat}`}
+                          className="img-fluid"
+                          style={{ maxWidth: "250px" }}
+                          alt="VietQR Preview"
+                        />
+                      </div>
+                      <div className="text-start small mx-auto" style={{ maxWidth: "300px" }}>
+                        <p className="mb-1">Ngân hàng: <strong>MB Bank</strong></p>
+                        <p className="mb-1">Chủ TK: <strong>LE THUONG HOAI THU</strong></p>
+                        <p className="mb-1">STK: <strong>0916761528</strong></p>
+                        <p className="mb-0 text-danger italic">* Nội dung: <strong>THANH TOAN {maDonHang} {maBiMat}</strong></p>
+                      </div>
+                      <Alert variant="warning" className="mt-3 p-2 small mb-0">
+                        ⚠️ Sau khi nhấn "XÁC NHẬN ĐẶT HÀNG", mã đơn hàng chính thức sẽ được tạo.
+                      </Alert>
+                    </div>
+                  )}
                 </Card.Body>
               </Card>
 
-              {!orderPlaced ? (
-                <Button
-                  className="w-100 py-3 fw-bold rounded-3"
-                  variant="success"
-                  size="lg"
-                  onClick={handleDatHang}
-                  disabled={loading}
-                >
-                  {loading ? <Spinner animation="border" size="sm" /> : "XÁC NHẬN ĐẶT HÀNG"}
-                </Button>
-              ) : (
-                <div className="text-center">
-                  {phuongthuc === "Chuyển khoản" ? (
-                    <Alert variant="info" className="small border-0 shadow-sm text-center">
-                      <p className="mb-2"><strong>Quét mã QR để thanh toán:</strong></p>
-                      <div className="bg-white p-2 rounded mb-2 d-inline-block shadow-sm">
-                        <img
-                          src={`https://img.vietqr.io/image/MB-0333333333333-compact.png?amount=${displayTotalPrice - discountAmount}&addInfo=THANH TOAN ${maDonHang}`}
-                          className="img-fluid"
-                          style={{ maxWidth: "220px" }}
-                          alt="VietQR"
-                        />
-                      </div>
-                      <p className="mb-1">Chủ TK: <strong>LE THUONG HOAI THU</strong></p>
-                      <p className="mb-2 text-primary"><em>Hệ thống sẽ cập nhật sau khi bạn chuyển khoản.</em></p>
-                      <Button
-                        className="w-100 py-2 fw-bold"
-                        variant="danger"
-                        onClick={handleThanhToan}
-                        disabled={loading}
-                      >
-                        {loading ? "ĐANG XỬ LÝ..." : "TÔI ĐÃ CHUYỂN KHOẢN"}
-                      </Button>
-                    </Alert>
-                  ) : (
-                    <>
-                      <Alert variant="success" className="mb-3 rounded-3">
-                        🎉 Đặt hàng thành công!
-                      </Alert>
-                      <Button
-                        className="w-100 py-3 fw-bold rounded-3"
-                        variant="primary"
-                        onClick={() => navigate("/orders")}
-                      >
-                        XEM LỊCH SỬ ĐƠN HÀNG
-                      </Button>
-                    </>
-                  )}
-                </div>
-              )}
+              <Button
+                className="w-100 py-3 fw-bold rounded-3"
+                variant="success"
+                size="lg"
+                onClick={handleDatHang}
+                disabled={loading}
+              >
+                {loading ? <Spinner animation="border" size="sm" /> : "XÁC NHẬN ĐẶT HÀNG"}
+              </Button>
             </Card.Body>
           </Card>
         </Col>
@@ -453,8 +512,12 @@ function Checkout() {
               <div
                 key={p.ma_km}
                 className="d-flex mb-3 bg-white rounded-3 shadow-sm overflow-hidden"
-                style={{ cursor: "pointer", opacity: totalPrice < p.giatri_don ? 0.6 : 1 }}
-                onClick={() => totalPrice >= p.giatri_don && handleApplyPromo(p.ma_km)}
+                style={{
+                  cursor: displayTotalPrice >= p.giatri_don ? "pointer" : "not-allowed",
+                  opacity: displayTotalPrice < p.giatri_don ? 0.5 : 1,
+                  border: selectedPromo?.ma_km === p.ma_km ? "2px solid #198754" : "1px solid #eee"
+                }}
+                onClick={() => displayTotalPrice >= p.giatri_don && handleApplyPromo(p.ma_km)}
               >
                 <div className="bg-success text-white p-3 d-flex flex-column justify-content-center text-center" style={{ minWidth: "80px" }}>
                   <div className="fw-bold fs-5">{p.mucgiam}%</div>
@@ -464,8 +527,13 @@ function Checkout() {
                   <div className="fw-bold mb-1">{p.ma_km}</div>
                   <div className="small text-muted">{p.ten_km}</div>
                   <div className="small text-success mt-1">Đơn tối thiểu: {Number(p.giatri_don).toLocaleString()}₫</div>
-                  {totalPrice < p.giatri_don && (
-                    <div className="text-danger xsmall mt-1">Cần mua thêm {(p.giatri_don - totalPrice).toLocaleString()}₫ để áp dụng</div>
+                  {displayTotalPrice < p.giatri_don && (
+                    <div className="text-danger small mt-1 fw-bold">
+                      Cần mua thêm {(p.giatri_don - displayTotalPrice).toLocaleString()}₫ để áp dụng
+                    </div>
+                  )}
+                  {selectedPromo?.ma_km === p.ma_km && (
+                    <div className="text-success small mt-1 fw-bold">✓ Đang chọn</div>
                   )}
                 </div>
               </div>

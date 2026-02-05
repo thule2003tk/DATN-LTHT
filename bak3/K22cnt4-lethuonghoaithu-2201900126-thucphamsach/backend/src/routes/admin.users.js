@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const db = require("../config/db.js"); // ← ĐÚNG 100% CHO CẤU TRÚC CỦA BẠN
+const db = require("../config/db.js");
 const { verifyToken, checkAdmin } = require("../middlewares/auth");
 
 /**
@@ -16,6 +16,7 @@ router.get("/", verifyToken, checkAdmin, (req, res) => {
       email,
       hoten,
       vai_tro,
+      trangthai as status,
       ngay_tao
     FROM nguoidung
     ORDER BY ngay_tao DESC
@@ -32,14 +33,14 @@ router.get("/", verifyToken, checkAdmin, (req, res) => {
 
 /**
  * ===============================
- * PUT: ADMIN DUYỆT / ĐỔI ROLE
+ * PUT: ADMIN ĐỔI ROLE
  * ===============================
  */
 router.put("/:id/role", verifyToken, checkAdmin, (req, res) => {
   const { id } = req.params;
   const { vai_tro } = req.body;
 
-  if (!["admin", "member", "customer"].includes(vai_tro)) {
+  if (!["admin", "staff", "member", "customer", "CUSTOMER"].includes(vai_tro)) {
     return res.status(400).json({ error: "Vai trò không hợp lệ" });
   }
 
@@ -49,8 +50,30 @@ router.put("/:id/role", verifyToken, checkAdmin, (req, res) => {
       console.error(err);
       return res.status(500).json({ error: "Không thể cập nhật vai trò" });
     }
-
     res.json({ message: "Cập nhật vai trò thành công" });
+  });
+});
+
+/**
+ * ===============================
+ * PUT: ADMIN CHẶN / MỞ CHẶN
+ * ===============================
+ */
+router.put("/:id/status", verifyToken, checkAdmin, (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  if (!["active", "blocked"].includes(status)) {
+    return res.status(400).json({ error: "Trạng thái không hợp lệ" });
+  }
+
+  const sql = "UPDATE nguoidung SET trangthai = ? WHERE ma_nguoidung = ?";
+  db.query(sql, [status, id], (err) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Không thể cập nhật trạng thái" });
+    }
+    res.json({ message: "Cập nhật trạng thái thành công" });
   });
 });
 

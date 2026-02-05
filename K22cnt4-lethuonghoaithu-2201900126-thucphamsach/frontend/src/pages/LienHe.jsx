@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Container, Row, Col, Form, Button, Card, Alert } from "react-bootstrap";
 import { FaMapMarkerAlt, FaPhoneAlt, FaEnvelope, FaClock } from "react-icons/fa";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import lienHeApi from "../api/lienhe";
+import { useAuth } from "../context/AuthContext";
 
 export default function LienHe() {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     ten: "",
     email: "",
@@ -13,6 +15,17 @@ export default function LienHe() {
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
+
+  // Tự động điền thông tin nếu người dùng đã đăng nhập
+  useEffect(() => {
+    if (user) {
+      setFormData((prev) => ({
+        ...prev,
+        ten: user.hoten || user.ten_dangnhap || "",
+        email: user.email || "",
+      }));
+    }
+  }, [user]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

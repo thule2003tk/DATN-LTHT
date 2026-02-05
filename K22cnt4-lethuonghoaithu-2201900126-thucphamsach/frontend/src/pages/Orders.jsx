@@ -111,10 +111,10 @@ function Orders() {
                         bg={
                           o.trangthai === "Đã giao" || o.trangthai === "Đã giao hàng"
                             ? "success"
-                            : o.trangthai === "Đã hủy"
-                              ? "danger"
-                              : o.trangthai === "Chờ thanh toán"
-                                ? "info"
+                            : o.trangthai === "Đang giao hàng" || o.trangthai === "Đang giao"
+                              ? "info"
+                              : o.trangthai === "Đã hủy"
+                                ? "danger"
                                 : "warning"
                         }
                         className="px-3 py-2"
@@ -166,7 +166,25 @@ function Orders() {
                     <div className="col-md-6 ps-md-4">
                       <p className="mb-1 text-muted">Phương thức & Trạng thái:</p>
                       <h6 className="fw-bold text-success">{selectedOrder?.phuongthuc}</h6>
-                      <Badge bg="info" className="text-uppercase">{selectedOrder?.trangthai}</Badge>
+                      <Badge
+                        bg={
+                          selectedOrder?.trangthai === "Đã giao" || selectedOrder?.trangthai === "Đã giao hàng"
+                            ? "success"
+                            : selectedOrder?.trangthai === "Đang giao hàng" || selectedOrder?.trangthai === "Đang giao"
+                              ? "info"
+                              : selectedOrder?.trangthai === "Đã hủy"
+                                ? "danger"
+                                : "warning"
+                        }
+                        className="text-uppercase mb-2"
+                      >
+                        {selectedOrder?.trangthai}
+                      </Badge>
+                      {selectedOrder?.trangthai === 'Đã hủy' && selectedOrder?.ly_do_huy && (
+                        <div className="mt-2 p-2 bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded text-danger small">
+                          <strong>Lý do hủy:</strong> {selectedOrder?.ly_do_huy}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </Card.Body>

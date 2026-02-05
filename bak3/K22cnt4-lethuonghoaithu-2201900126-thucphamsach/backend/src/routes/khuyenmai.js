@@ -11,4 +11,8 @@ router.post("/", verifyToken, checkAdmin, kmController.createKhuyenMai);
 router.put("/:ma_km", verifyToken, checkAdmin, kmController.updateKhuyenMai);
 router.delete("/:ma_km", verifyToken, checkAdmin, kmController.deleteKhuyenMai);
 
+// Khách: Lưu và Lấy mã của tôi
+router.post("/save", verifyToken, kmController.saveKhuyenMai);
+router.get("/mine", verifyToken, kmController.getMineKhuyenMai);
+
 module.exports = router;

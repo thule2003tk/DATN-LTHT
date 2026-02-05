@@ -1,230 +1,354 @@
 const express = require("express");
 const router = express.Router();
-const db = require("../config/db.js");
+const db = require("../config/db");
+const auth = require("../middlewares/auth");
+const verifyToken = auth.verifyToken || ((req, res, next) => next());
+const checkStaffOrAdmin = auth.checkStaffOrAdmin || ((req, res, next) => next());
 
-// Helper: Tạo mã đơn hàng tự động (nếu bạn chưa có auto-increment hoặc muốn format DHxxxx)
+console.log("✅ [DEBUG] verifyToken is:", typeof verifyToken);
+console.log("✅ [DEBUG] checkStaffOrAdmin is:", typeof checkStaffOrAdmin);
+
+// ================= HELPER =================
 function generateMaDonHang() {
   return "DH" + Date.now().toString().slice(-8);
 }
 
-// TẠO ĐƠN HÀNG MỚI - Hoàn chỉnh + set trạng thái ban đầu dựa trên phuongthuc
-router.post("/", (req, res) => {
-  const { ma_kh, ngay_dat, tongtien, trangthai = "Chờ xử lý", ma_km, items, phuongthuc } = req.body;
+// ================= TEST ROUTE =================
+router.get("/test-route", (req, res) => {
+  res.json({ message: "Don Hang Route is working!" });
+});
 
-  console.log("=== NHẬN YÊU CẦU TẠO ĐƠN HÀNG ===");
-  console.log("Body:", JSON.stringify(req.body, null, 2));
-
-  // Validate cơ bản
-  if (!tongtien || tongtien <= 0) {
-    return res.status(400).json({ error: "Tổng tiền không hợp lệ" });
-  }
-  if (!Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({ error: "Danh sách sản phẩm không hợp lệ" });
-  }
-
-  // Set trạng thái ban đầu dựa trên phuongthuc
-  const trangthaiBanDau = phuongthuc === "COD" ? "Chờ xử lý" : "Chưa thanh toán";
-
-  // Bắt đầu transaction để đảm bảo tính toàn vẹn dữ liệu
-  db.beginTransaction((err) => {
+// ================= CHI TIẾT ĐƠN HÀNG =================
+router.get("/detail/:ma_donhang", (req, res) => {
+  console.log("🔍 Fetching details for Order:", req.params.ma_donhang);
+  const sql = `
+    SELECT ct.*, s.ten_sp, s.hinhanh
+    FROM chitiet_donhang ct
+    JOIN sanpham s ON ct.ma_sp = s.ma_sp
+    WHERE ct.ma_donhang = ?
+  `;
+  db.query(sql, [req.params.ma_donhang], (err, rows) => {
     if (err) {
-      console.error("Lỗi bắt đầu transaction:", err);
+      console.error("❌ Lỗi database detail:", err);
       return res.status(500).json({ error: "Lỗi server" });
     }
+    console.log(`✅ Trả về ${rows.length} sản phẩm cho đơn ${req.params.ma_donhang}`);
+    res.json(rows);
+  });
+});
 
-    // 1. Insert vào bảng donhang
-    const ma_donhang = generateMaDonHang(); // hoặc để auto-increment thì bỏ dòng này và lấy insertId
+// ================= TẠO ĐƠN HÀNG =================
+router.post("/", (req, res) => {
+  console.log("📥 Incoming Order Request:", JSON.stringify(req.body, null, 2));
+  const {
+    ma_kh, tongtien, ma_km, items, phuongthuc,
+    hoten_nhan, sdt_nhan, email_nhan, diachi_nhan, ghichu, ma_bi_mat, ma_donhang: body_ma_donhang
+  } = req.body;
 
-    const sqlDonHang = `
-      INSERT INTO donhang (ma_donhang, ma_kh, ngay_dat, tongtien, trangthai, ma_km)
-      VALUES (?, ?, ?, ?, ?, ?)
+  // 🛡️ Kiểm tra tài khoản có bị chặn không
+  if (ma_kh) {
+    const checkStatusSql = "SELECT trangthai FROM nguoidung WHERE ma_nguoidung = ?";
+    db.query(checkStatusSql, [ma_kh], (err, results) => {
+      if (!err && results.length > 0 && results[0].trangthai === 'blocked') {
+        return res.status(403).json({ error: "Tài khoản của bạn hiện đang bị chặn đặt hàng. Vui lòng liên hệ hotline." });
+      }
+      // Tiếp tục xử lý tạo đơn hàng nếu không bị chặn
+      proceedOrder();
+    });
+  } else {
+    proceedOrder(); // Khách vãng lai
+  }
+
+  function proceedOrder() {
+    if (!tongtien || tongtien <= 0)
+      return res.status(400).json({ error: "Tổng tiền không hợp lệ" });
+
+    if (!Array.isArray(items) || items.length === 0)
+      return res.status(400).json({ error: "Danh sách sản phẩm không hợp lệ" });
+
+    // Trạng thái ban đầu: 
+    // - COD: Chờ xử lý
+    // - Chuyển khoản: Chờ xử lý (User confirms after scanning)
+    const trangthai = "Chờ xử lý";
+    const ma_donhang = body_ma_donhang || generateMaDonHang();
+
+    db.beginTransaction((err) => {
+      if (err) return res.status(500).json({ error: "Lỗi server" });
+
+      const sqlDonHang = `
+      INSERT INTO donhang 
+      (ma_donhang, ma_kh, ngay_dat, tongtien, trangthai, ma_km, 
+       hoten_nhan, sdt_nhan, email_nhan, diachi_nhan, ghichu, phuongthuc, ma_bi_mat)
+      VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    db.query(
-      sqlDonHang,
-      [ma_donhang, ma_kh || null, ngay_dat || new Date(), tongtien, trangthaiBanDau, ma_km || null],
-      (err, result) => {
-        if (err) {
-          db.rollback(() => {
-            console.error("LỖI INSERT DONHANG:", err.message, err.sql);
-            return res.status(500).json({ error: "Lỗi tạo đơn hàng", details: err.message });
-          });
-          return;
-        }
+      // 🔍 Sử dụng ma_kh được gửi từ frontend (đã drop FK nên chấp nhận cả numeric ID)
+      const insert_ma_kh = ma_kh || null;
 
-        // 2. Insert chi tiết sản phẩm (chitiet_donhang)
-        const valuesChiTiet = items.map((item, index) => [
-          `CT${ma_donhang.slice(2)}${String(index + 1).padStart(2, "0")}`, // tạo ma_ctdh: CT + phần số của DH + index
+      db.query(
+        sqlDonHang,
+        [
           ma_donhang,
-          item.ma_sp,
-          item.soluong,
-          item.dongia || item.gia, // frontend gửi dongia hoặc gia đều được
-        ]);
+          insert_ma_kh,
+          tongtien,
+          trangthai,
+          ma_km || null,
+          hoten_nhan || null,
+          sdt_nhan || null,
+          email_nhan || null,
+          diachi_nhan || null,
+          ghichu || null,
+          phuongthuc || "COD",
+          ma_bi_mat || null
+        ],
+        (err) => {
+          if (err) {
+            console.error("❌ Lỗi insert donhang:", err);
+            return db.rollback(() =>
+              res.status(500).json({ error: "Lỗi tạo đơn hàng: " + err.message })
+            );
+          }
 
-        if (valuesChiTiet.length > 0) {
-          const sqlChiTiet = `
-            INSERT INTO chitiet_donhang (ma_ctdh, ma_donhang, ma_sp, soluong, dongia)
-            VALUES ?
-          `;
+          const values = items.map((item, i) => [
+            `C${ma_donhang.slice(3)}${String(i + 1).padStart(2, "0")}`, // Truncate to 1 + 7 + 2 = 10 chars
+            ma_donhang,
+            item.ma_sp,
+            item.soluong,
+            item.dongia || item.gia,
+          ]);
 
-          db.query(sqlChiTiet, [valuesChiTiet], (err) => {
+          const sqlCT = `
+          INSERT INTO chitiet_donhang (ma_ctdh, ma_donhang, ma_sp, soluong, dongia)
+          VALUES ?
+        `;
+
+          db.query(sqlCT, [values], (err) => {
             if (err) {
-              db.rollback(() => {
-                console.error("LỖI INSERT CHITIET_DONHANG:", err.message, err.sql);
-                return res.status(500).json({ error: "Lỗi lưu chi tiết sản phẩm", details: err.message });
-              });
-              return;
+              console.error("❌ Lỗi insert chitiet_donhang:", err);
+              return db.rollback(() =>
+                res.status(500).json({ error: "Lỗi lưu chi tiết đơn hàng: " + err.message })
+              );
             }
 
-            // Thành công → commit
-            db.commit((err) => {
-              if (err) {
-                db.rollback(() => res.status(500).json({ error: "Lỗi commit transaction" }));
-                return;
-              }
-
-              console.log(`Tạo đơn hàng thành công: ${ma_donhang}, ${items.length} sản phẩm, trạng thái ban đầu: ${trangthaiBanDau}`);
-              res.status(201).json({
-                message: "Tạo đơn hàng thành công",
-                ma_donhang: ma_donhang,
+            // 📉 CẬP NHẬT TỒN KHO: Trừ số lượng khỏi bảng sanpham
+            const stockPromises = items.map(item => {
+              return new Promise((resolve, reject) => {
+                db.query(
+                  "UPDATE sanpham SET soluong_ton = soluong_ton - ? WHERE ma_sp = ?",
+                  [item.soluong, item.ma_sp],
+                  (err) => err ? reject(err) : resolve()
+                );
               });
             });
-          });
-        } else {
-          // Không có items → vẫn commit
-          db.commit(() => {
-            res.status(201).json({ message: "Tạo đơn hàng thành công (không có sản phẩm)", ma_donhang });
+
+            Promise.all(stockPromises)
+              .then(() => {
+                // 🔄 ĐỒNG BỘ KHÁCH HÀNG (Nếu có)
+                if (ma_kh) {
+                  const ma_kh_str = String(ma_kh);
+                  const sqlSyncKH = `
+                    INSERT INTO khachhang (ma_kh, ten_kh, email, sodienthoai, diachi, ngay_tao, trangthai)
+                    VALUES (?, ?, ?, ?, ?, NOW(), 'active')
+                    ON DUPLICATE KEY UPDATE 
+                      ten_kh = VALUES(ten_kh), email = VALUES(email), sodienthoai = VALUES(sodienthoai), diachi = VALUES(diachi)
+                  `;
+                  db.query(sqlSyncKH, [ma_kh_str, hoten_nhan, email_nhan || null, sdt_nhan, diachi_nhan], (err) => {
+                    if (err) console.error("❌ Lỗi đồng bộ khachhang:", err);
+                    finalizeOrder();
+                  });
+                } else {
+                  finalizeOrder();
+                }
+              })
+              .catch(err => {
+                console.error("❌ Lỗi cập nhật tồn kho:", err);
+                return db.rollback(() => res.status(500).json({ error: "Lỗi cập nhật tồn kho" }));
+              });
+
+            function finalizeOrder() {
+              const deleteCartSql = ma_kh ? "DELETE FROM giohang WHERE ma_kh = ?" : "SELECT 1";
+              const deleteCartParams = ma_kh ? [ma_kh] : [];
+
+              db.query(deleteCartSql, deleteCartParams, (err) => {
+                if (err) console.error("❌ Lỗi xóa giỏ hàng:", err);
+                db.commit((err) => {
+                  if (err) return db.rollback(() => res.status(500).json({ error: "Lỗi commit" }));
+                  res.status(201).json({ message: "Tạo đơn hàng thành công", ma_donhang, trangthai });
+                });
+              });
+            }
           });
         }
-      }
-    );
-  });
-});
-
-// LẤY TẤT CẢ ĐƠN HÀNG (ADMIN) - ĐÃ SỬA TÊN CỘT
-router.get("/admin", (req, res) => {
-  const sql = `
-    SELECT ma_donhang, ma_kh, ngay_dat, tongtien, trangthai, ma_km 
-    FROM donhang 
-    ORDER BY ngay_dat DESC
-  `;
-
-  db.query(sql, (err, rows) => {
-    if (err) {
-      console.error("LỖI LẤY DANH SÁCH ĐƠN HÀNG:", err.message);
-      return res.status(500).json({ error: "Lỗi server", details: err.message });
-    }
-    res.json(rows);
-  });
-});
-
-// LẤY CHI TIẾT ĐƠN HÀNG (đã có, chỉ sửa tên cột nếu cần)
-router.get("/detail/:ma_donhang", (req, res) => {
-  const { ma_donhang } = req.params;
-  const sql = `
-    SELECT ma_ctdh, ma_sp, soluong, dongia 
-    FROM chitiet_donhang 
-    WHERE ma_donhang = ?
-  `;
-
-  db.query(sql, [ma_donhang], (err, rows) => {
-    if (err) {
-      console.error("LỖI LẤY CHI TIẾT:", err);
-      return res.status(500).json({ error: "Lỗi server" });
-    }
-    res.json(rows);
-  });
-});
-
-// CẬP NHẬT TRẠNG THÁI - ĐÃ SỬA TÊN CỘT
-router.put("/:ma_donhang", (req, res) => {
-  const { ma_donhang } = req.params;
-  const { trangthai } = req.body;
-
-  if (!trangthai) {
-    return res.status(400).json({ error: "Thiếu trạng thái mới" });
+      );
+    });
   }
-
-  const sql = "UPDATE donhang SET trangthai = ? WHERE ma_donhang = ?";
-
-  db.query(sql, [trangthai, ma_donhang], (err, result) => {
-    if (err) {
-      console.error("LỖI CẬP NHẬT TRẠNG THÁI:", err);
-      return res.status(500).json({ error: "Lỗi server" });
-    }
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: "Không tìm thấy đơn hàng" });
-    }
-    res.json({ message: "Cập nhật trạng thái thành công" });
-  });
 });
 
-// THANH TOÁN ĐƠN HÀNG - HOÀN CHỈNH (đổi tên cột khớp bảng thanhtoan của bạn)
+// ================= THANH TOÁN =================
 router.post("/thanhtoan", (req, res) => {
   const { ma_donhang, phuongthuc, sotien } = req.body;
+  if (!ma_donhang || !phuongthuc || !sotien)
+    return res.status(400).json({ error: "Thiếu dữ liệu" });
 
-  // Kiểm tra dữ liệu bắt buộc
-  if (!ma_donhang || !phuongthuc || !sotien) {
-    return res.status(400).json({ error: "Thiếu thông tin thanh toán" });
-  }
+  const ma_thanhtoan = "TT" + Date.now().toString().slice(-13);
 
-  // Tạo mã thanh toán tự động (TT + random 6 số)
-  const ma_thanhtoan = "TT" + Math.floor(100000 + Math.random() * 900000);
-
-  console.log("Yêu cầu thanh toán:", { ma_donhang, phuongthuc, sotien, ma_thanhtoan });
-
-  // Bắt đầu transaction để đảm bảo cả 2 bảng đều thành công
   db.beginTransaction((err) => {
-    if (err) {
-      console.error("Lỗi bắt đầu transaction thanh toán:", err);
-      return res.status(500).json({ error: "Lỗi server" });
-    }
+    if (err) return res.status(500).json({ error: "Lỗi server" });
 
-    // 1. Insert vào bảng thanhtoan (sửa tên cột khớp DB)
-    const sqlThanhtoan = `
+    const sqlTT = `
       INSERT INTO thanhtoan (ma_thanhtoan, ma_donhang, phuongthuc, sotien, trangthai, thoigian_thanhtoan)
       VALUES (?, ?, ?, ?, 'Đã thanh toán', NOW())
     `;
 
-    db.query(sqlThanhtoan, [ma_thanhtoan, ma_donhang, phuongthuc, sotien], (err) => {
+    db.query(sqlTT, [ma_thanhtoan, ma_donhang, phuongthuc, sotien], (err) => {
       if (err) {
-        db.rollback(() => {
-          console.error("LỖI INSERT THANHTOAN:", err.message, err.sql);
-          return res.status(500).json({ error: "Lỗi lưu thanh toán", details: err.message });
-        });
-        return;
+        console.error("❌ Lỗi insert thanhtoan:", err);
+        return db.rollback(() =>
+          res.status(500).json({ error: "Lỗi ghi nhận thanh toán" })
+        );
       }
 
-      // 2. Cập nhật trạng thái đơn hàng
-      const newStatus = phuongthuc === "COD" ? "Chờ xử lý" : "Chờ xử lý"; // Cả 2 đều "Chờ xử lý" (đợi admin xác nhận)
-      const sqlUpdateDonhang = "UPDATE donhang SET trangthai = ? WHERE ma_donhang = ?";
-
-      db.query(sqlUpdateDonhang, [newStatus, ma_donhang], (err2) => {
-        if (err2) {
-          db.rollback(() => {
-            console.error("LỖI CẬP NHẬT DONHANG:", err2.message);
-            return res.status(500).json({ error: "Lỗi cập nhật trạng thái đơn", details: err2.message });
-          });
-          return;
-        }
-
-        // Commit transaction
-        db.commit((err3) => {
-          if (err3) {
-            db.rollback(() => res.status(500).json({ error: "Lỗi commit transaction" }));
-            return;
+      db.query(
+        "UPDATE donhang SET trangthai = 'Chờ xử lý' WHERE ma_donhang = ?",
+        [ma_donhang],
+        (err) => {
+          if (err) {
+            return db.rollback(() =>
+              res.status(500).json({ error: "Lỗi cập nhật trạng thái đơn hàng" })
+            );
           }
 
-          console.log(`Thanh toán thành công: ${ma_thanhtoan} cho đơn ${ma_donhang}`);
-          res.json({
-            message: "Thanh toán thành công",
-            ma_thanhtoan,
-            trangthai: newStatus
-          });
-        });
-      });
+          db.commit(() =>
+            res.json({ message: "Xác nhận thanh toán thành công", ma_thanhtoan })
+          );
+        }
+      );
     });
   });
 });
+
+// 1. Xem danh sách tất cả đơn hàng (Admin/Staff)
+router.get("/", verifyToken, checkStaffOrAdmin, (req, res) => {
+  console.log("👉 Admin fetching all orders...");
+  db.query(
+    `SELECT * FROM donhang ORDER BY ngay_dat DESC`,
+    (err, rows) => {
+      if (err) {
+        console.error("❌ Lỗi lấy đơn hàng admin:", err);
+        return res.status(500).json({ error: "Lỗi server" });
+      }
+      console.log(`✅ Trả về ${rows.length} đơn hàng`);
+      res.json(rows);
+    }
+  );
+});
+
+// ================= USER =================
+router.get("/user/:ma_kh", (req, res) => {
+  db.query(
+    `SELECT * FROM donhang WHERE ma_kh = ? ORDER BY ngay_dat DESC`,
+    [req.params.ma_kh],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: "Lỗi server" });
+      res.json(rows);
+    }
+  );
+});
+
+// 2. Lấy chi tiết lịch sử mua hàng của một khách hàng (Admin/Staff)
+router.get("/admin/customers/:ma_kh", verifyToken, checkStaffOrAdmin, (req, res) => {
+  db.query(
+    `SELECT * FROM donhang WHERE ma_kh = ? ORDER BY ngay_dat DESC`,
+    [req.params.ma_kh],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: "Lỗi server" });
+      res.json(rows);
+    }
+  );
+});
+
+// ================= CẬP NHẬT TRẠNG THÁI =================
+// Cập nhật trạng thái (Admin/Staff)
+router.put("/:ma_donhang/status", verifyToken, checkStaffOrAdmin, (req, res) => {
+  const { trangthai, ly_do_huy } = req.body || {};
+
+  if (!trangthai) {
+    return res.status(400).json({ error: "Thiếu trạng thái đơn hàng" });
+  }
+
+  db.beginTransaction((err) => {
+    if (err) return res.status(500).json({ error: "Lỗi server" });
+
+    // 1. Lấy trạng thái cũ để tránh hoàn kho 2 lần
+    const checkSql = "SELECT trangthai FROM donhang WHERE ma_donhang = ?";
+    db.query(checkSql, [req.params.ma_donhang], (err, results) => {
+      if (err || results.length === 0) {
+        return db.rollback(() => res.status(404).json({ error: "Không tìm thấy đơn hàng" }));
+      }
+
+      const oldStatus = results[0].trangthai;
+
+      // 2. Cập nhật trạng thái mới
+      db.query(
+        "UPDATE donhang SET trangthai = ?, ly_do_huy = ? WHERE ma_donhang = ?",
+        [trangthai, ly_do_huy || null, req.params.ma_donhang],
+        (err) => {
+          if (err) {
+            return db.rollback(() => res.status(500).json({ error: "Lỗi server" }));
+          }
+
+          // 3. Nếu chuyển sang 'Đã hủy' và trạng thái cũ KHÔNG PHẢI 'Đã hủy' -> HOÀN KHO
+          if (trangthai === "Đã hủy" && oldStatus !== "Đã hủy") {
+            const getItemsSql = "SELECT ma_sp, soluong FROM chitiet_donhang WHERE ma_donhang = ?";
+            db.query(getItemsSql, [req.params.ma_donhang], (err, items) => {
+              if (err) {
+                return db.rollback(() => res.status(500).json({ error: "Lỗi lấy chi tiết đơn hàng" }));
+              }
+
+              const stockPromises = items.map(item => {
+                return new Promise((resolve, reject) => {
+                  db.query(
+                    "UPDATE sanpham SET soluong_ton = soluong_ton + ? WHERE ma_sp = ?",
+                    [item.soluong, item.ma_sp],
+                    (err) => err ? reject(err) : resolve()
+                  );
+                });
+              });
+
+              Promise.all(stockPromises)
+                .then(() => {
+                  db.commit((err) => {
+                    if (err) return db.rollback(() => res.status(500).json({ error: "Lỗi commit" }));
+                    res.json({ message: "Cập nhật thành công và đã hoàn trả kho" });
+                  });
+                })
+                .catch(err => {
+                  console.error("❌ Lỗi hoàn kho:", err);
+                  db.rollback(() => res.status(500).json({ error: "Lỗi hoàn kho" }));
+                });
+            });
+          }
+          // 4. Nếu chuyển TỪ 'Đã hủy' SANG trạng thái khác -> TRỪ KHO LẠI (Nếu cần, nhưng ở đây ưu tiên an toàn)
+          else if (oldStatus === "Đã hủy" && trangthai !== "Đã hủy") {
+            // Logic này có thể cần nếu admin phục hồi đơn hàng bị hủy
+            // Tạm thời chỉ commit để tránh phức tạp, user sẽ tự kiểm tra kho
+            db.commit((err) => {
+              if (err) return db.rollback(() => res.status(500).json({ error: "Lỗi commit" }));
+              res.json({ message: "Cập nhật thành công (Lưu ý: Không tự động trừ lại kho)" });
+            });
+          }
+          else {
+            db.commit((err) => {
+              if (err) return db.rollback(() => res.status(500).json({ error: "Lỗi commit" }));
+              res.json({ message: "Cập nhật thành công" });
+            });
+          }
+        }
+      );
+    });
+  });
+});
+
+// (Moved to top)
 
 module.exports = router;

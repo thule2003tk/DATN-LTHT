@@ -1,0 +1,56 @@
+{
+  "donhang_ids": [
+    "1017118240",
+    "1017118243",
+    "1017118244"
+  ],
+  "khachhang_table": [
+    {
+      "ma_kh": "KH001",
+      "ten_kh": "Lê Thương Hoài Thu",
+      "email": "hoai-thu@gmail.com"
+    },
+    {
+      "ma_kh": "KH002",
+      "ten_kh": "Trần Thị B",
+      "email": "tranthib@gmail.com"
+    }
+  ],
+  "nguoidung_table": [
+    {
+      "ma_nguoidung": 1017118234,
+      "hoten": "lê thu",
+      "email": "lethu@gmail.com"
+    },
+    {
+      "ma_nguoidung": 1017118235,
+      "hoten": "Quản trị viên",
+      "email": "admin@gmail.com"
+    },
+    {
+      "ma_nguoidung": 1017118239,
+      "hoten": "lê thu",
+      "email": "thu@gmail.com"
+    },
+    {
+      "ma_nguoidung": 1017118240,
+      "hoten": "lê hoài thu",
+      "email": "lehoaithu@gmail.com"
+    },
+    {
+      "ma_nguoidung": 1017118242,
+      "hoten": "thu lê",
+      "email": "thule@gmail.com"
+    },
+    {
+      "ma_nguoidung": 1017118243,
+      "hoten": "Nguyễn Văn A",
+      "email": "khach1@gmail.com"
+    },
+    {
+      "ma_nguoidung": 1017118244,
+      "hoten": "Trần Thị B",
+      "email": "khach2@gmail.com"
+    }
+  ]
+}

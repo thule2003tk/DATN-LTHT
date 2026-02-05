@@ -5,8 +5,10 @@ import {
   Spinner,
   Alert,
   Modal,
-  Form
+  Form,
+  InputGroup
 } from "react-bootstrap";
+import { useLocation } from "react-router-dom";
 import {
   getDonViSanPham,
   addDonViSanPham,
@@ -25,6 +27,8 @@ function DonViSanPhamAdmin() {
   const [units, setUnits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const location = useLocation();
 
   const [showModal, setShowModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -59,18 +63,30 @@ function DonViSanPhamAdmin() {
     fetchData();
   }, []);
 
+  // Đồng bộ search từ URL (của thanh search global)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const s = params.get("search");
+    if (s !== null) setSearchTerm(s);
+  }, [location.search]);
+
   /* ================= GROUP BY PRODUCT ================= */
-  const groupedItems = items.reduce((acc, item) => {
-    if (!acc[item.ma_sp]) {
-      acc[item.ma_sp] = {
-        ma_sp: item.ma_sp,
-        ten_sp: item.ten_sp,
-        units: []
-      };
-    }
-    acc[item.ma_sp].units.push(item);
-    return acc;
-  }, {});
+  const groupedItems = items
+    .filter(item =>
+      item.ten_sp.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.ma_sp.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .reduce((acc, item) => {
+      if (!acc[item.ma_sp]) {
+        acc[item.ma_sp] = {
+          ma_sp: item.ma_sp,
+          ten_sp: item.ten_sp,
+          units: []
+        };
+      }
+      acc[item.ma_sp].units.push(item);
+      return acc;
+    }, {});
 
   /* ================= MODAL ================= */
   const handleShowModal = (item = {}) => {
@@ -127,11 +143,26 @@ function DonViSanPhamAdmin() {
   /* ================= UI ================= */
   return (
     <div className="container-fluid">
-      <div className="d-flex justify-content-between mb-4">
-        <h2 className="text-success">Quản lý Giá theo Đơn vị</h2>
-        <Button variant="success" onClick={() => handleShowModal()}>
-          + Thêm mới chung
-        </Button>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2 className="text-success mb-0">Quản lý Giá theo Đơn vị</h2>
+
+        <div className="d-flex gap-3 align-items-center">
+          <InputGroup style={{ width: "300px" }}>
+            <InputGroup.Text className="bg-white border-end-0">
+              🔍
+            </InputGroup.Text>
+            <Form.Control
+              placeholder="Tìm tên sản phẩm..."
+              className="border-start-0"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </InputGroup>
+
+          <Button variant="success" onClick={() => handleShowModal()}>
+            + Thêm mới chung
+          </Button>
+        </div>
       </div>
 
       {error && <Alert variant="danger">{error}</Alert>}
@@ -144,6 +175,14 @@ function DonViSanPhamAdmin() {
           </tr>
         </thead>
         <tbody>
+          {Object.keys(groupedItems).length === 0 && (
+            <tr>
+              <td colSpan="2" className="text-center py-5">
+                <div className="text-muted">🔍 Không tìm thấy sản phẩm nào phù hợp</div>
+              </td>
+            </tr>
+          )}
+
           {Object.values(groupedItems).map((product) => (
             <tr key={product.ma_sp}>
               <td>

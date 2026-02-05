@@ -9,14 +9,18 @@
 /* ===== LOGO FIX CHỈ TO LOGO – KHÔNG TO NAV ===== */
 .logo {
   text-decoration: none;
-  line-height: 1;              /* 🔥 QUAN TRỌNG */
-  padding: 0;                  /* không làm nav cao */
+  line-height: 1;
+  /* 🔥 QUAN TRỌNG */
+  padding: 0;
+  /* không làm nav cao */
 }
 
 /* LOGO IMAGE */
 .logo-img {
-  height: 60px;                /* 🔥 TO HƠN RÕ RỆT */
-  width: auto;                 /* giữ đúng tỉ lệ */
+  height: 60px;
+  /* 🔥 TO HƠN RÕ RỆT */
+  width: auto;
+  /* giữ đúng tỉ lệ */
   object-fit: contain;
   margin-right: 12px;
   display: block;
@@ -24,10 +28,12 @@
 
 /* LOGO TEXT */
 .logo-text {
-  font-size: 20px;             /* chữ to vừa */
+  font-size: 20px;
+  /* chữ to vừa */
   font-weight: 800;
   color: #1f6b3a;
-  line-height: 1.1;            /* không đẩy chiều cao */
+  line-height: 1.1;
+  /* không đẩy chiều cao */
   white-space: nowrap;
 }
 
@@ -81,4 +87,28 @@
     max-width: 100%;
     margin: 12px 0;
   }
+}
+
+/* DROP-DOWN HOVER FIX */
+.nav-item.dropdown .dropdown-menu {
+  border-radius: 12px !important;
+  border: none !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1) !important;
+  margin-top: 0 !important;
+  /* 🔥 Sát vào để di chuột không bị mất */
+}
+
+/* Fade animation for dropdown */
+.dropdown-menu {
+  display: block !important;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s ease !important;
+}
+
+.dropdown.show .dropdown-menu {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
 }

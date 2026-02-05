@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Table, Button, Spinner, Alert, Modal, Form } from "react-bootstrap";
+import { Table, Button, Spinner, Alert, Modal, Form, InputGroup } from "react-bootstrap";
 import { getDonViTinh, addDonViTinh, updateDonViTinh, deleteDonViTinh } from "../api/adminDonViTinh";
 import { useAuth } from "../context/AuthContext";
 
@@ -8,6 +8,7 @@ function DonViTinhAdmin() {
     const [units, setUnits] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [searchTerm, setSearchTerm] = useState("");
 
     // Modal state
     const [showModal, setShowModal] = useState(false);
@@ -26,6 +27,11 @@ function DonViTinhAdmin() {
             setLoading(false);
         }
     };
+
+    const filteredUnits = units.filter(u =>
+        u.ten_dvt.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        u.ma_dvt.toString().toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     useEffect(() => {
         fetchUnits();
@@ -55,7 +61,10 @@ function DonViTinhAdmin() {
             handleCloseModal();
             fetchUnits();
         } catch (err) {
-            alert("Thao tác thất bại: " + (err.response?.data?.error || err.message));
+            const data = err.response?.data;
+            const msg = data?.details || data?.error || err.message || "Thao tác thất bại";
+            alert("Thao tác thất bại: " + msg);
+            if (data?.sql) console.error("SQL Error:", data.sql);
         }
     };
 
@@ -75,12 +84,27 @@ function DonViTinhAdmin() {
     return (
         <div className="container-fluid">
             <div className="d-flex justify-content-between align-items-center mb-4">
-                <h2 className="text-success">Quản lý đơn vị sản phẩm</h2>
-                {user.vai_tro === "admin" && (
-                    <Button variant="success" onClick={() => handleShowModal()}>
-                        + Thêm đơn vị tính
-                    </Button>
-                )}
+                <h2 className="text-success mb-0">Quản lý đơn vị sản phẩm</h2>
+
+                <div className="d-flex gap-3 align-items-center">
+                    <InputGroup style={{ maxWidth: "250px" }}>
+                        <InputGroup.Text className="bg-white border-end-0 text-success">
+                            🔍
+                        </InputGroup.Text>
+                        <Form.Control
+                            placeholder="Tìm tên hoặc mã..."
+                            className="border-start-0 shadow-none border-success-subtle"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </InputGroup>
+
+                    {user.vai_tro === "admin" && (
+                        <Button variant="success" onClick={() => handleShowModal()}>
+                            + Thêm đơn vị tính
+                        </Button>
+                    )}
+                </div>
             </div>
 
             {error && <Alert variant="danger">{error}</Alert>}
@@ -98,12 +122,14 @@ function DonViTinhAdmin() {
                     </tr>
                 </thead>
                 <tbody>
-                    {units.length === 0 ? (
+                    {filteredUnits.length === 0 ? (
                         <tr>
-                            <td colSpan="7" className="text-center">Chưa có đơn vị tính nào</td>
+                            <td colSpan="7" className="text-center py-5">
+                                <div className="text-muted fs-5">🔍 Không tìm thấy đơn vị nào phù hợp</div>
+                            </td>
                         </tr>
                     ) : (
-                        units.map((u, index) => (
+                        filteredUnits.map((u, index) => (
                             <tr key={u.ma_dvt}>
                                 <td>{index + 1}</td>
                                 <td>{u.ma_dvt}</td>
@@ -180,10 +206,10 @@ function DonViTinhAdmin() {
                             <Form.Label>Trạng thái</Form.Label>
                             <Form.Select
                                 value={currentUnit.trangthai}
-                                onChange={(e) => setCurrentUnit({ ...currentUnit, trangthai: parseInt(e.target.value) })}
+                                onChange={(e) => setCurrentUnit({ ...currentUnit, trangthai: e.target.value })}
                             >
-                                <option value={1}>Hoạt động</option>
-                                <option value={0}>Ngưng hoạt động</option>
+                                <option value="active">Hoạt động</option>
+                                <option value="inactive">Ngưng hoạt động</option>
                             </Form.Select>
                         </Form.Group>
                     </Modal.Body>

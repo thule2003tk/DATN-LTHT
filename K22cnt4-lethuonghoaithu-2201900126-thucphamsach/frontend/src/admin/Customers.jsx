@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
-import { Container, Table, Button, Alert, Spinner, Badge, Modal, Form } from "react-bootstrap";
+import { Container, Table, Button, Alert, Spinner, Badge, Modal, Form, InputGroup } from "react-bootstrap";
 import { FaUserSlash, FaUserCheck, FaEdit } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
-
-const API_URL = "http://localhost:3001/api/khachhang";
+import { getCustomers, updateCustomerStatus, updateCustomer } from "../api/khachhang";
 
 function AdminCustomers() {
   const { user: currentUser } = useAuth();
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Modal Edit state
   const [showModal, setShowModal] = useState(false);
@@ -24,8 +24,7 @@ function AdminCustomers() {
   const loadCustomers = async () => {
     try {
       setLoading(true);
-      const res = await fetch(API_URL);
-      const data = await res.json();
+      const data = await getCustomers();
       setCustomers(Array.isArray(data) ? data : []);
     } catch (err) {
       setError("Không thể tải danh sách khách hàng");
@@ -38,6 +37,12 @@ function AdminCustomers() {
     loadCustomers();
   }, []);
 
+  const filteredCustomers = customers.filter(c =>
+    c.ten_kh.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (c.email_taikhoan || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (c.sdt_taikhoan || "").toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const toggleBlockStatus = async (customer) => {
     if (currentUser?.vai_tro !== "admin") {
       alert("Chỉ hệ thống trưởng (Admin) mới có quyền chặn người dùng.");
@@ -48,44 +53,33 @@ function AdminCustomers() {
 
     if (window.confirm(`Bạn có chắc muốn ${action} khách hàng ${customer.ten_kh}?`)) {
       try {
-        const res = await fetch(`${API_URL}/${customer.ma_kh}/status`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ trangthai: newStatus })
-        });
-        if (res.ok) {
-          loadCustomers();
-        } else {
-          alert("Lỗi khi cập nhật trạng thái");
-        }
+        await updateCustomerStatus(customer.ma_kh, newStatus);
+        loadCustomers();
       } catch (err) {
-        alert("Lỗi kết nối server");
+        alert(err.response?.data?.error || "Lỗi khi cập nhật trạng thái");
       }
     }
   };
 
   const handleEditInit = (customer) => {
-    setEditingCustomer({ ...customer });
+    setEditingCustomer({
+      ...customer,
+      email: customer.email_taikhoan || "",
+      sodienthoai: customer.sdt_taikhoan || "",
+      diachi: customer.diachi_taikhoan || ""
+    });
     setShowModal(true);
   };
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${API_URL}/${editingCustomer.ma_kh}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editingCustomer)
-      });
-      if (res.ok) {
-        alert("Cập nhật thông tin khách hàng thành công!");
-        setShowModal(false);
-        loadCustomers();
-      } else {
-        alert("Lỗi khi cập nhật");
-      }
+      await updateCustomer(editingCustomer.ma_kh, editingCustomer);
+      alert("Cập nhật thông tin khách hàng thành công!");
+      setShowModal(false);
+      loadCustomers();
     } catch (err) {
-      alert("Lỗi kết nối");
+      alert(err.response?.data?.error || "Lỗi khi cập nhật");
     }
   };
 
@@ -99,8 +93,22 @@ function AdminCustomers() {
   return (
     <Container className="py-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="text-success fw-bold">🛒 Quản lý Khách hàng (Đã đặt hàng)</h2>
-        <span className="text-muted italic">Danh sách những người đã mua hàng tại shop</span>
+        <div>
+          <h2 className="text-success fw-bold mb-0">🛒 Quản lý Khách hàng</h2>
+          <span className="text-muted italic small">Danh sách những người đã mua hàng tại shop</span>
+        </div>
+
+        <InputGroup style={{ maxWidth: "350px" }}>
+          <InputGroup.Text className="bg-white border-end-0 text-success">
+            🔍
+          </InputGroup.Text>
+          <Form.Control
+            placeholder="Tìm theo tên, email, sđt..."
+            className="border-start-0 shadow-none border-success-subtle"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </InputGroup>
       </div>
 
       {error && <Alert variant="danger">{error}</Alert>}
@@ -109,37 +117,36 @@ function AdminCustomers() {
         <Table hover responsive className="mb-0">
           <thead className="bg-success text-white">
             <tr>
-              <th className="py-3 ps-4">Mã KH</th>
+              <th className="py-3 ps-4">ID</th>
               <th className="py-3">Họ Tên</th>
-              <th className="py-3">Vai Trò</th>
-              <th className="py-3">Liên Hệ</th>
-              <th className="py-3">Địa Chỉ</th>
-              <th className="py-3">Trạng Thái</th>
+              <th className="py-3">Tài khoản (Người đặt)</th>
+              <th className="py-3">Người nhận (Đơn cuối)</th>
+              <th className="py-3 text-center">Trạng Thái</th>
               <th className="py-3 text-center">Hành Động</th>
             </tr>
           </thead>
           <tbody>
-            {customers.map((c) => (
+            {filteredCustomers.map((c) => (
               <tr key={c.ma_kh} className={c.trangthai === 'blocked' ? 'table-light opacity-75' : ''}>
-                <td className="ps-4 align-middle">{c.ma_kh}</td>
+                <td className="ps-4 align-middle x-small text-muted" style={{ fontSize: '0.7rem' }}>{c.ma_kh}</td>
                 <td className="align-middle fw-bold">{c.ten_kh}</td>
                 <td className="align-middle">
-                  <Badge bg={c.vai_tro === "staff" ? "warning" : "info"} text="dark">
-                    {c.vai_tro === "staff" ? "Nhân viên" : "Khách hàng"}
-                  </Badge>
+                  <div className="small fw-bold text-success">{(c.email_taikhoan || c.email) || "—"}</div>
+                  <div className="text-muted small">{(c.sdt_taikhoan || c.sodienthoai) || "—"}</div>
                 </td>
                 <td className="align-middle">
-                  <div className="small">{c.email}</div>
-                  <div className="text-muted small">{c.sodienthoai}</div>
+                  <div className="fw-bold small">{c.ten_nhan_cuoi}</div>
+                  <div className="small text-primary">{c.email_nhan_cuoi}</div>
+                  <div className="small text-muted">{c.sdt_nhan_cuoi}</div>
+                  <div className="text-muted italic" style={{ fontSize: '0.75rem' }}>{c.diachi_nhan_cuoi}</div>
                 </td>
-                <td className="align-middle small">{c.diachi}</td>
-                <td className="align-middle">
+                <td className="align-middle text-center">
                   <Badge
                     pill
                     bg={c.trangthai === 'blocked' ? 'danger' : 'success'}
                     className="px-3 py-2"
                   >
-                    {c.trangthai === 'blocked' ? 'Đã chặn' : 'Đang hoạt động'}
+                    {c.trangthai === 'blocked' ? 'Khóa' : 'Hoạt động'}
                   </Badge>
                 </td>
                 <td className="text-center align-middle">
@@ -167,10 +174,10 @@ function AdminCustomers() {
                 </td>
               </tr>
             ))}
-            {customers.length === 0 && (
+            {filteredCustomers.length === 0 && (
               <tr>
-                <td colSpan="7" className="text-center py-5 text-muted">
-                  Chưa có khách hàng nào đặt hàng.
+                <td colSpan="7" className="text-center py-5">
+                  <div className="text-muted fs-5">🔍 Không tìm thấy khách hàng nào phù hợp</div>
                 </td>
               </tr>
             )}

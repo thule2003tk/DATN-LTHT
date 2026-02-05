@@ -20,10 +20,14 @@ function ProductAdd() {
     ma_ncc: "",
     ma_dvt: "",
     hinhanh: null,
+    giay_chung_nhan: null,
     thongtin_sanpham: "",
     gia: "", // Thêm trường giá mặc định
+    phan_tram_giam_gia: 0,
     soluong_ton: "",
     mota: "",
+    is_featured: 0,
+    ma_danhmuc_list: [], // Danh sách mã danh mục phụ
   });
 
   const [selectedUnits, setSelectedUnits] = useState([]); // Array of { ma_dvt, gia, ten_dvt }
@@ -48,7 +52,8 @@ function ProductAdd() {
           setForm(prev => ({
             ...prev,
             ten_danhmuc: catData[0].ten_danhmuc,
-            ma_danhmuc: catData[0].ma_danhmuc
+            ma_danhmuc: catData[0].ma_danhmuc,
+            ma_danhmuc_list: [catData[0].ma_danhmuc]
           }));
         }
         if (supplierData.data?.length > 0) setForm(prev => ({ ...prev, ma_ncc: supplierData.data[0].ma_ncc }));
@@ -68,6 +73,22 @@ function ProductAdd() {
     }
   };
 
+  const handleCategoryToggle = (ma_danhmuc) => {
+    setForm(prev => {
+      const isSelected = prev.ma_danhmuc_list.includes(ma_danhmuc);
+      const newList = isSelected
+        ? prev.ma_danhmuc_list.filter(id => id !== ma_danhmuc)
+        : [...prev.ma_danhmuc_list, ma_danhmuc];
+
+      return {
+        ...prev,
+        ma_danhmuc_list: newList,
+        // Cập nhật ma_danhmuc chính nếu nó chưa được chọn hoặc bị bỏ chọn
+        ma_danhmuc: newList.length > 0 ? (newList.includes(prev.ma_danhmuc) ? prev.ma_danhmuc : newList[0]) : ""
+      };
+    });
+  };
+
   const handleUnitPriceChange = (ma_dvt, price) => {
     setSelectedUnits(selectedUnits.map(u =>
       u.ma_dvt === ma_dvt ? { ...u, gia: price } : u
@@ -79,9 +100,13 @@ function ProductAdd() {
 
     if (name === "hinhanh") {
       setForm({ ...form, hinhanh: files[0] });
+    } else if (name === "giay_chung_nhan") {
+      setForm({ ...form, giay_chung_nhan: files[0] });
     } else if (name === "ma_danhmuc") {
       const cat = categories.find(c => c.ma_danhmuc === value);
       setForm({ ...form, ma_danhmuc: value, ten_danhmuc: cat?.ten_danhmuc || "" });
+    } else if (name === "is_featured") {
+      setForm({ ...form, is_featured: e.target.checked ? 1 : 0 });
     } else {
       setForm({ ...form, [name]: value });
     }
@@ -98,10 +123,25 @@ function ProductAdd() {
 
     const fd = new FormData();
     Object.keys(form).forEach((key) => {
-      if (form[key] !== null) {
+      // Bỏ qua các trường xử lý riêng để tránh gửi lặp
+      if (["ma_danhmuc", "ten_danhmuc", "ma_danhmuc_list", "hinhanh", "giay_chung_nhan"].includes(key)) return;
+
+      if (form[key] !== null && form[key] !== undefined) {
         fd.append(key, form[key]);
       }
     });
+
+    // 🚀 Đóng gói danh mục (Gửi 1 lần duy nhất)
+    fd.append("ma_danhmuc_list", JSON.stringify(form.ma_danhmuc_list || []));
+
+    fd.append("ma_danhmuc", form.ma_danhmuc || "");
+
+    const mainCat = categories.find(c => c.ma_danhmuc === form.ma_danhmuc);
+    fd.append("ten_danhmuc", mainCat?.ten_danhmuc || "");
+
+    // 🚀 Đóng gói ảnh & chứng nhận
+    if (form.hinhanh) fd.append("hinhanh", form.hinhanh);
+    if (form.giay_chung_nhan) fd.append("giay_chung_nhan", form.giay_chung_nhan);
 
     // 🚀 Đóng gói danh sách đơn vị tính bổ sung
     const extraUnits = selectedUnits.filter(u => u.gia > 0);
@@ -131,12 +171,23 @@ function ProductAdd() {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold">Danh mục</Form.Label>
-              <Form.Select name="ma_danhmuc" value={form.ma_danhmuc} onChange={handleChange}>
+              <Form.Label className="fw-bold">Danh mục (Có thể chọn nhiều)</Form.Label>
+              <div className="p-3 border rounded bg-light" style={{ maxHeight: "150px", overflowY: "auto" }}>
                 {categories.map((c) => (
-                  <option key={c.ma_danhmuc} value={c.ma_danhmuc}>{c.ten_danhmuc}</option>
+                  <Form.Check
+                    key={c.ma_danhmuc}
+                    type="checkbox"
+                    id={`cat-${c.ma_danhmuc}`}
+                    label={c.ten_danhmuc}
+                    checked={form.ma_danhmuc_list.includes(c.ma_danhmuc)}
+                    onChange={() => handleCategoryToggle(c.ma_danhmuc)}
+                    className="mb-1"
+                  />
                 ))}
-              </Form.Select>
+              </div>
+              <Form.Text className="text-muted small">
+                💡 Danh mục đầu tiên bạn chọn sẽ là danh mục chính.
+              </Form.Text>
             </Form.Group>
 
             <Form.Group className="mb-3">
@@ -157,19 +208,42 @@ function ProductAdd() {
               </Form.Select>
             </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label className="fw-bold">Giá mặc định (cho đơn vị chính)</Form.Label>
-              <Form.Control type="number" name="gia" onChange={handleChange} required placeholder="Nhập giá" />
-              <Form.Text className="text-muted italic">
-                💡 Hệ thống sẽ tự động lấy giá <b>thấp nhất</b> trong các đơn vị bạn chọn để làm giá hiển thị chính.
-              </Form.Text>
-            </Form.Group>
+            <div className="row g-2">
+              <div className="col-md-7">
+                <Form.Group className="mb-3">
+                  <Form.Label className="fw-bold">Giá mặc định (cho đơn vị chính)</Form.Label>
+                  <Form.Control type="number" name="gia" onChange={handleChange} required placeholder="Nhập giá" />
+                  <Form.Text className="text-muted italic small">
+                    💡 Làm giá hiển thị chính.
+                  </Form.Text>
+                </Form.Group>
+              </div>
+              <div className="col-md-5">
+                <Form.Group className="mb-3">
+                  <Form.Label className="fw-bold text-danger">Giảm (%)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="phan_tram_giam_gia"
+                    value={form.phan_tram_giam_gia}
+                    onChange={handleChange}
+                    min="0"
+                    max="100"
+                  />
+                </Form.Group>
+              </div>
+            </div>
           </div>
 
           <div className="col-md-6">
             <Form.Group className="mb-3">
-              <Form.Label className="fw-bold">Hình ảnh</Form.Label>
+              <Form.Label className="fw-bold">Hình ảnh sản phẩm</Form.Label>
               <Form.Control type="file" name="hinhanh" onChange={handleChange} />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold text-success">🌿 Chứng nhận thực phẩm sạch (Ảnh/PDF)</Form.Label>
+              <Form.Control type="file" name="giay_chung_nhan" onChange={handleChange} />
+              <Form.Text className="text-muted small">Tải lên giấy kiểm định hoặc chứng nhận VSATTP.</Form.Text>
             </Form.Group>
 
             <Form.Group className="mb-3">
@@ -181,6 +255,17 @@ function ProductAdd() {
               <Form.Label className="fw-bold">Mô tả ngắn</Form.Label>
               <Form.Control as="textarea" rows={3} name="mota" onChange={handleChange} />
             </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Check
+                type="checkbox"
+                name="is_featured"
+                label="Sản phẩm nổi bật (Hiện ngoài trang chủ)"
+                checked={form.is_featured === 1}
+                onChange={handleChange}
+                className="fw-bold text-primary"
+              />
+            </Form.Group>
           </div>
         </div>
 
@@ -190,29 +275,29 @@ function ProductAdd() {
         </Form.Group>
 
         {/* 🚀 CHỌN ĐA ĐƠN VỊ TÍNH */}
-        <div className="mb-4 p-3 border rounded bg-light">
-          <h5 className="text-secondary fw-bold mb-3">📍 Thiết lập tất cả các đơn vị tính</h5>
-          <p className="small text-muted mb-3">Tích chọn các đơn vị khác và nhập giá tương ứng nếu sản phẩm có nhiều cách bán (ví dụ: vừa bán theo Kg, vừa bán theo Thùng).</p>
+        <div className="mb-4 p-3 border rounded bg-light shadow-sm">
+          <h5 className="text-success fw-bold mb-3">📍 Thiết lập tất cả các đơn vị tính & Giá</h5>
+          <p className="small text-muted mb-3">Tích chọn các đơn vị khác và nhập giá tương ứng nếu sản phẩm có nhiều cách bán.</p>
 
-          <div className="row">
+          <div className="row g-2" style={{ maxHeight: "300px", overflowY: "auto" }}>
             {units.map((u) => {
               const selected = selectedUnits.find(su => su.ma_dvt === u.ma_dvt);
               return (
-                <div key={u.ma_dvt} className="col-md-6 mb-3">
-                  <div className="d-flex align-items-center gap-3 p-2 border rounded bg-white">
+                <div key={u.ma_dvt} className="col-md-6">
+                  <div className={`d-flex align-items-center gap-3 p-2 border rounded ${selected ? 'bg-white border-success' : 'bg-transparent text-muted'}`}>
                     <Form.Check
                       type="checkbox"
                       id={`unit-${u.ma_dvt}`}
                       label={u.ten_dvt}
                       checked={!!selected}
                       onChange={() => handleUnitToggle(u)}
-                      className="fw-bold"
+                      className="fw-bold flex-grow-1"
                     />
                     {selected && (
                       <Form.Control
                         size="sm"
                         type="number"
-                        placeholder="Nhập giá..."
+                        placeholder="Giá..."
                         value={selected.gia}
                         onChange={(e) => handleUnitPriceChange(u.ma_dvt, e.target.value)}
                         style={{ width: "120px" }}

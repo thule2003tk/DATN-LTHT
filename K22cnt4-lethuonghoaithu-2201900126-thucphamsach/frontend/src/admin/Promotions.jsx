@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Table, Button, Modal, Form, Badge, Spinner, Row, Col } from "react-bootstrap";
+import { Table, Button, Modal, Form, Badge, Spinner, Row, Col, InputGroup } from "react-bootstrap";
 import { FaPlus, FaEdit, FaTrash, FaTicketAlt } from "react-icons/fa";
 import adminPromotionApi from "../api/adminPromotions";
 
@@ -8,6 +8,7 @@ function AdminPromotions() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingPromo, setEditingPromo] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState({
     ma_km: "",
     ten_km: "",
@@ -34,6 +35,11 @@ function AdminPromotions() {
       setLoading(false);
     }
   };
+
+  const filteredPromos = promos.filter(p =>
+    p.ten_km.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.ma_km.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleOpenModal = (promo = null) => {
     if (promo) {
@@ -91,10 +97,25 @@ function AdminPromotions() {
   return (
     <div className="container-fluid">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="text-success fw-bold"><FaTicketAlt /> Quản lý khuyến mãi</h2>
-        <Button variant="success" onClick={() => handleOpenModal()}>
-          <FaPlus /> Thêm mã mới
-        </Button>
+        <h2 className="text-success fw-bold mb-0"><FaTicketAlt /> Quản lý khuyến mãi</h2>
+
+        <div className="d-flex gap-3 align-items-center">
+          <InputGroup style={{ maxWidth: "300px" }}>
+            <InputGroup.Text className="bg-white border-end-0 text-success">
+              🔍
+            </InputGroup.Text>
+            <Form.Control
+              placeholder="Tìm tên hoặc mã KM..."
+              className="border-start-0 shadow-none border-success-subtle"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </InputGroup>
+
+          <Button variant="success" onClick={() => handleOpenModal()}>
+            <FaPlus /> Thêm mã mới
+          </Button>
+        </div>
       </div>
 
       <div className="card border-0 shadow-sm">
@@ -112,7 +133,14 @@ function AdminPromotions() {
               </tr>
             </thead>
             <tbody>
-              {promos.map((p) => (
+              {filteredPromos.length === 0 && (
+                <tr>
+                  <td colSpan="7" className="text-center py-5">
+                    <div className="text-muted fs-5">🔍 Không tìm thấy mã khuyến mãi nào phù hợp</div>
+                  </td>
+                </tr>
+              )}
+              {filteredPromos.map((p) => (
                 <tr key={p.ma_km}>
                   <td><Badge bg="info">{p.ma_km}</Badge></td>
                   <td>{p.ten_km}</td>

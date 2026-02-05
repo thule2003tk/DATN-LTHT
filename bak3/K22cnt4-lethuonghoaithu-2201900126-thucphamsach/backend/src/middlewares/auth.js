@@ -14,7 +14,23 @@ function verifyToken(req, res, next) {
 }
 
 function checkAdmin(req, res, next) {
-  if (req.user.vai_tro !== "admin") return res.status(403).json({ error: "Không có quyền Admin" });
+  if (req.user.vai_tro?.toLowerCase() !== "admin") return res.status(403).json({ error: "Không có quyền Admin" });
+  next();
+}
+
+function checkStaffOrAdmin(req, res, next) {
+  const role = req.user.vai_tro?.toLowerCase();
+  if (role === "admin" || role === "staff") {
+    next();
+  } else {
+    return res.status(403).json({ error: "Không có quyền thực hiện hành động này" });
+  }
+}
+
+function restrictDeleteForStaff(req, res, next) {
+  if (req.method === "DELETE" && req.user.vai_tro === "staff") {
+    return res.status(403).json({ error: "Nhân viên không được quyền xóa dữ liệu" });
+  }
   next();
 }
 
@@ -23,4 +39,10 @@ function checkCustomer(req, res, next) {
   next();
 }
 
-module.exports = { verifyToken, checkAdmin, checkCustomer };
+module.exports = {
+  verifyToken,
+  checkAdmin,
+  checkCustomer,
+  checkStaffOrAdmin,
+  restrictDeleteForStaff
+};

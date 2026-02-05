@@ -1,0 +1,117 @@
+/* ===== FOOTER XANH LÁ - HOÀN THIỆN ===== */
+.site-footer {
+  width: 100%;
+  background-color: #1f6b3a;
+  padding: 64px 0 0;
+  font-size: 15px;
+  color: #e8f5e9;
+}
+
+/* LOGO */
+.footer-logo {
+  font-size: 26px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 14px;
+}
+
+/* MÔ TẢ */
+.footer-desc {
+  color: #d7efe1;
+  line-height: 1.75;
+  max-width: 360px;
+}
+
+/* SOCIAL */
+.footer-social {
+  margin-top: 20px;
+}
+
+.footer-social a {
+  width: 42px;
+  height: 42px;
+  background-color: #2f8f4e;
+  color: #ffffff;
+  border-radius: 50%;
+  margin-right: 12px;
+  font-size: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.25s;
+}
+
+.footer-social a:hover {
+  background-color: #ffffff;
+  color: #1f6b3a;
+  transform: translateY(-3px);
+}
+
+/* TIÊU ĐỀ */
+.footer-title {
+  font-size: 17px;
+  font-weight: 600;
+  margin-bottom: 18px;
+  color: #ffffff;
+}
+
+/* LINK */
+.footer-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-links li {
+  margin-bottom: 12px;
+}
+
+.footer-links li a {
+  text-decoration: none;
+  color: #d7efe1;
+}
+
+.footer-links li a:hover {
+  color: #ffffff;
+  padding-left: 6px;
+}
+
+/* CONTACT */
+.footer-contact p {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  color: #d7efe1;
+}
+
+.footer-contact svg {
+  margin-right: 10px;
+  font-size: 16px;
+  color: #a7e3b5;
+}
+
+/* ===== FOOTER BOTTOM FULL ===== */
+.footer-bottom {
+  width: 100%;
+  background-color: #16552e;
+  color: #e8f5e9;
+  text-align: center;
+  padding: 16px 12px;
+  font-size: 14px;
+  margin-top: 48px;
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+  .site-footer {
+    padding-top: 48px;
+  }
+
+  .footer-logo {
+    font-size: 23px;
+  }
+
+  .footer-bottom {
+    font-size: 13px;
+  }
+}
