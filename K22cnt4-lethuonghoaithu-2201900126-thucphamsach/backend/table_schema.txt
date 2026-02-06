@@ -1,0 +1,11 @@
+CREATE TABLE `giohang` (
+  `ma_giohang` bigint(20) NOT NULL,
+  `ma_kh` varchar(10) DEFAULT NULL,
+  `ma_sp` varchar(30) DEFAULT NULL,
+  `soluong` int(11) DEFAULT NULL,
+  PRIMARY KEY (`ma_giohang`),
+  KEY `ma_kh` (`ma_kh`),
+  KEY `giohang_ibfk_2` (`ma_sp`),
+  CONSTRAINT `giohang_ibfk_1` FOREIGN KEY (`ma_kh`) REFERENCES `khachhang` (`ma_kh`),
+  CONSTRAINT `giohang_ibfk_2` FOREIGN KEY (`ma_sp`) REFERENCES `sanpham` (`ma_sp`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci

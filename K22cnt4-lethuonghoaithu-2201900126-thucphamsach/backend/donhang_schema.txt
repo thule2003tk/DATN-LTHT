@@ -1,0 +1,19 @@
+CREATE TABLE `donhang` (
+  `ma_donhang` varchar(10) NOT NULL,
+  `ma_kh` varchar(10) DEFAULT NULL,
+  `ngay_dat` datetime DEFAULT NULL,
+  `tongtien` decimal(10,2) DEFAULT NULL,
+  `trangthai` varchar(50) DEFAULT NULL,
+  `ly_do_huy` text DEFAULT NULL,
+  `hoten_nhan` varchar(255) DEFAULT NULL,
+  `email_nhan` varchar(255) DEFAULT NULL,
+  `sdt_nhan` varchar(20) DEFAULT NULL,
+  `diachi_nhan` text DEFAULT NULL,
+  `ghichu` text DEFAULT NULL,
+  `ma_km` varchar(10) DEFAULT NULL,
+  `phuongthuc` varchar(50) DEFAULT 'COD',
+  `ma_bi_mat` varchar(20) DEFAULT NULL,
+  PRIMARY KEY (`ma_donhang`),
+  KEY `ma_kh` (`ma_kh`),
+  KEY `ma_km` (`ma_km`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci

@@ -1,0 +1,18 @@
+[
+  {
+    "ma_km": "1017390578",
+    "trangthai": "Đang áp dụng"
+  },
+  {
+    "ma_km": "HGJ5CNGRHY",
+    "trangthai": "Đang áp dụng"
+  },
+  {
+    "ma_km": "KM01",
+    "trangthai": "Đang áp dụng"
+  },
+  {
+    "ma_km": "KM02",
+    "trangthai": "Đang áp dụng"
+  }
+]

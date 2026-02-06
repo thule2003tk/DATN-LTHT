@@ -1,0 +1,8 @@
+CREATE TABLE `khachhang_khuyenmai` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `ma_kh` varchar(50) NOT NULL,
+  `ma_km` varchar(10) NOT NULL,
+  `ngay_luu` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_save` (`ma_kh`,`ma_km`)
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
